@@ -1,7 +1,8 @@
 # CLAUDE.md: moshi-silence
 
 Project memory for a one-day research sprint (started 2026-10-14). Read this fully before
-touching code or data. Last full review: 2026-10-14, ~6 pm ET.
+touching code or data. Last full review: 2026-10-14, evening (after the second pre-launch
+review and the eval harness).
 
 ## The task
 
@@ -35,7 +36,7 @@ or self-generated data. The brief, condensed:
    Optional if time allows: a "talk about trees more often" experiment as a second, simpler
    test of how fast fine-tuning changes behavior.
 
-## Status at a glance (2026-10-14, ~6 pm ET)
+## Status at a glance (2026-10-14, evening)
 
 | Piece | State |
 |---|---|
@@ -77,18 +78,11 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
      H100 SXM.
    - Create a **network volume ≥ 150 GB** first, mounted at `/workspace`.
    - **1× H100 SXM pod for setup**, with SSH over exposed TCP so rsync works.
-   - Then a **4× H100 SXM pod on the same volume** for the training burst.
-   - Drop back to 1× (or stop) while waiting on harness work: idle 4× costs ~$12/hr.
-3. **On the 1× pod:** `apt-get install -y rsync` on the pod, then the two rsyncs (worktree code,
-   main-checkout `data/`, ~6.2 GB; commands in the `scripts/gpu_bootstrap.sh` header), then
-   `bash scripts/gpu_bootstrap.sh`. Everything (uv, its Python 3.12, the env, weights,
-   configs) lands on the volume. Its step 6 runs the eval selftest + a 40-episode R0
-   generation benchmark. Note s/step and peak memory (`smoke.log`) and ms/step
-   (`eval_bench.log`) and update the compute table below. Stop the pod.
-4. **On the 4× pod:** `nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml
-   configs/R?_1h_*.yaml > /workspace/logs/parallel.log 2>&1 &`. That's one run per GPU,
-   with the next queued config starting as a GPU frees up: R0–R3 start together, R4 takes
-   R0's GPU a few minutes later, R5 starts when the first of R1–R3 finishes.
+   - Then a **4× H100 SXM pod on the same volume** for the training burst and the phase-1
+     generation evals.
+   - Terminate each pod as soon as its work is done (idle 4× costs ~$12/hr); everything that
+     matters is on the volume.
+
    **Driving RunPod from Claude Code** (set up 2026-10-14): RunPod's hosted MCP server is
    registered at user scope (`claude mcp add --transport http runpod -s user
    https://mcp.getrunpod.io/`, OAuth, no API key on disk). A session must start after that
@@ -105,6 +99,16 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
    - **Before every billable action (volume, each pod) state the spec and price and get the
      user's OK.** Terminate pods when their work is done; the volume keeps the state.
    - The Mac's `rsync` is macOS openrsync (protocol 29); it works with the pod's GNU rsync.
+3. **On the 1× pod:** `apt-get install -y rsync` on the pod, then the two rsyncs (worktree code,
+   main-checkout `data/`, ~6.2 GB; commands in the `scripts/gpu_bootstrap.sh` header), then
+   `bash scripts/gpu_bootstrap.sh`. Everything (uv, its Python 3.12, the env, weights,
+   configs) lands on the volume. Its step 6 runs the eval selftest + a 40-episode R0
+   generation benchmark. Note s/step and peak memory (`smoke.log`) and ms/step
+   (`eval_bench.log`) and update the compute table below. Terminate the pod.
+4. **On the 4× pod:** `nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml
+   configs/R?_1h_*.yaml > /workspace/logs/parallel.log 2>&1 &`. That's one run per GPU,
+   with the next queued config starting as a GPU frees up: R0–R3 start together, R4 takes
+   R0's GPU a few minutes later, R5 starts when the first of R1–R3 finishes.
 5. **Phase-1 generation evals** as soon as runs finish, on the same 4× pod:
    `nohup bash scripts/eval_dev.sh dev_80 R0 R1_1h_lr2e-06 R2_1h_lr1e-05 R3_1h_lr5e-05
    R4_1h_lr0.0002 R5_1h_lr0.0005 > /workspace/logs/eval_dev.log 2>&1 &`, then
@@ -129,6 +133,14 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
   The 10 h build was 7,661 clips ≈ 7.8 h of speech in 37.6 min.
 - `--tts espeak` loads `libespeak-ng.so.1`, which is Linux-only, so it fails on this Mac.
 - The Moshi weights (~15 GB) aren't here; the GPU bootstrap downloads them.
+- `silero-vad` 6.2.3 is installed in `.venv` (for `eval_score --oracle`); it isn't in
+  `requirements.txt`.
+- **Temporary, will vanish with the background job that made them:** the CPU eval tests
+  (`test_eval_gen.py`, `test_eval_pipeline.py`, `test_eval_swap.py`, `test_selftest_cpu.py`,
+  `test_report.sh`, `test_eval_dev.sh`, `test_parallel.sh`), a scratch venv with moshi 061cc4c
+  + torch 2.6.0 (`m061venv`), and the Mimi weights + tokenizer (`hfmoshi/`), all under
+  `~/.claude/jobs/35d2ba60/tmp/`. Move them into the repo (e.g. `tests/`) if they should be
+  kept; they hard-code those paths.
 
 ## Data: what's built and how
 
@@ -450,8 +462,8 @@ The committed `index.html` points at wavs that only exist in the main checkout.
 - No revision argument for the weights. → the bootstrap downloads a snapshot at
   `2bfc9ae6e89079a5cc7ed2a68436010d91a3d289` and the configs point at the files. The repo has
   no `config.json`, so moshi uses its built-in 7B config: the architecture comes from the
-  uv-locked moshi package. `hf_repo_id` still makes one (404) request, so the box needs
-  network access to HF.
+  uv-locked moshi package. `hf_repo_id` still makes one (404) request; all training and
+  eval jobs run with `HF_HUB_OFFLINE=1`, so it fails instantly and is caught (see below).
 - sphn skips unreadable wavs with only a log line (`on_error=log`). The smoke check warns on
   "error" lines.
 - PyYAML reads `2e-06` (no dot) as a string. make_configs writes `2.000000e-06` (`.6e`, so
@@ -475,7 +487,8 @@ The committed `index.html` points at wavs that only exist in the main checkout.
 config_path=ckpt/config.json, lora_weights=ckpt/lora.safetensors).get_moshi(...)`, then
 `LMGen`. **Pass the checkpoint's `config.json`**: it carries `lora: true`, `lora_rank: 64`,
 `lora_scaling: 2`. Without it, moshi asserts or defaults to rank 128 and fails on shapes.
-`fuse_lora=True` for speed. Checkpoints live in
+`fuse_lora=True` for a single checkpoint; `eval_gen` keeps LoRA unfused when it evaluates
+several checkpoints in one process, so it can swap the LoRA tensors. Checkpoints live in
 `run_dir/checkpoints/checkpoint_XXXXXX/consolidated/{lora.safetensors, config.json}`.
 
 ## Run matrix (agreed 2026-10-14)
@@ -600,7 +613,8 @@ human turns.
 - `eval_gen run` end to end with real Mimi + tokenizer + Interleaver and a tiny random LM
   (moshi 061cc4c, torch 2.6.0): `--force-all` output scores identically to the oracle on the
   same 6 episodes (the Mimi round trip keeps timing); free mode runs and a babbling model
-  scores 100% violations; `selftest` on real data: shift 1 = 100% argmax agreement.
+  scores 100% violations; `selftest` on real data: shift 1 = 100% identical input columns
+  (shift 0: 0.3%).
 - LoRA swap: loads checkpoints exactly; `base` (lora_B = 0) reproduces the LoRA-free model
   token for token; multi-checkpoint layout + resume work. `eval_dev.sh` tested with a fake
   python.
@@ -633,8 +647,8 @@ check (bf16 streaming vs full-sequence attention differ slightly).
 - The B1 fillers (D2c) come from each pack's `mutter`.
 - Pack reuse is silent when a family runs out (test_distract / test_cond, ~3 B2 scripts).
 - `build.py train` must learn to skip dev packs before any further train build.
-- `requirements.txt` misses `whisper_timestamped` (calibrate_offset.py) and
-  `huggingface_hub[cli]`; `sentencepiece` and `torch` come in only through moshi /
+- `requirements.txt` misses `whisper_timestamped` (calibrate_offset.py), `silero-vad`
+  (eval_score) and `huggingface_hub[cli]`; `sentencepiece` and `torch` come in only through moshi /
   pocket-tts. The GPU box doesn't use it (uv.lock there).
 - The demo wavs are gitignored, so `demo/index.html` plays only in the main checkout.
   `configs/` is gitignored, since it's generated on the box with absolute paths.
@@ -644,7 +658,7 @@ check (bf16 streaming vs full-sequence attention differ slightly).
 
 ## Working with the user (Jaewoo)
 
-- Casual and direct. He pushes back when estimates look inflated; give real numbers with
+- Casual and direct. They push back when estimates look inflated; give real numbers with
   the arithmetic.
 - Render math in LaTeX in explanations.
 - Ask before generating at scale or spending money (API calls for thousands of packs, GPU
