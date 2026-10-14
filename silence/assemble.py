@@ -152,18 +152,26 @@ def assemble(spec, cache, out_dir):
     distractors += stalls
     distractors.sort(key=lambda d: d["t"][0])
 
-    rel = next((t for t in placed if t.get("release")), None)
-    release = dict(p.get("release", {"kind": "none"}))
-    events = {"type": spec["type"], "instr_end": anchors.get("instr_end")}
-    if rel is not None and "instr_end" in anchors:
-        onset = rel["words"][0][1]
+    # One entry per hold: [instruction end, Moshi's release onset] plus how it is released.
+    # "hold" / "release" / "instr_end" at the top level describe the first hold.
+    holds = []
+    for t in placed:
+        anchor = t.get("hold_anchor", "instr")
+        if not t.get("release") or f"{anchor}_end" not in anchors:
+            continue
+        instr_end, onset = anchors[f"{anchor}_end"], t["words"][0][1]
+        release = dict(t["release"] if isinstance(t["release"], dict) else p.get("release", {"kind": "none"}))
         if release["kind"] == "timer":
-            release["ref"] = round(anchors["instr_end"] + release["N"], 3)
+            release["ref"] = round(instr_end + release["N"], 3)
         else:
             release["ref"] = anchors.get("cue_end")
         release["moshi_onset"] = onset
-        events["hold"] = [anchors["instr_end"], onset]
-    events["release"] = release
+        holds.append({"instr_end": instr_end, "hold": [instr_end, onset], "release": release})
+    events = {"type": spec["type"], "instr_end": anchors.get("instr_end")}
+    if holds:
+        events["hold"] = holds[0]["hold"]
+    events["release"] = holds[0]["release"] if holds else dict(p.get("release", {"kind": "none"}))
+    events["holds"] = holds
     events["distractors"] = distractors
     # Every point where Moshi responds to a human: used for responsiveness metrics.
     resp, last_human = [], None
@@ -186,6 +194,6 @@ def assemble(spec, cache, out_dir):
         "duration": round(dur, 3),
         "speech_s": round(_union(speech), 3),
         "moshi_speech_s": round(_union([span(t) for t in placed if t["spk"] == "moshi"]), 3),
-        "hold_s": round(events["hold"][1] - events["hold"][0], 3) if "hold" in events else 0.0,
+        "hold_s": round(sum(h["hold"][1] - h["hold"][0] for h in holds), 3),
     }
     return {"path": f"{spec['id']}.wav", "duration": round(n / SR, 6)}, stats

@@ -1,14 +1,17 @@
 """Sanity checks on built episodes, run through moshi-finetune's own Interleaver.
 
-  python -m silence.check demo --finetune ../moshi-finetune [--plots]
+  python -m silence.check data/train --finetune ../moshi-finetune [--plots]
 
 For every episode:
   1. wav is stereo 24 kHz; every alignment lies inside the audio
   2. Moshi's channel is digitally silent across the hold (after the ack)
-  3. release timing: B1 re-ask lands at instr_end + N; cue releases 0.25-1.0 s after the cue
+  3. release timing: B1 re-ask lands at instr_end + N; cue releases 0.25-1.5 s after the cue
   4. every human turn is audible on the user channel above the noise floor
   5. the trainer's Interleaver turns the alignments into the expected text stream:
      a run of PAD across the hold and EPAD on the frame right before Moshi resumes
+  6. no human turn overlaps a Moshi turn (e.g. a B1 filler running into the re-ask)
+  7. train episodes fit one 60 s training window
+  8. the user speaks first, never Moshi
 
 The real Moshi tokenizer lives on Hugging Face; when it isn't available a stand-in
 tokenizer is used (it only changes how many tokens each word becomes, not where
@@ -109,18 +112,27 @@ def check_episode(wav_path, il, tok):
         fails.append("alignment outside audio")
     moshi, user = audio[:, 0], audio[:, 1]
 
-    # 2. Moshi silent across the hold (after the ack, if any)
-    hold = ev.get("hold")
-    if hold:
+    # 2. Moshi silent across each hold (after the ack, if any). Episodes built before
+    #    events["holds"] existed carry only the single top-level hold.
+    holds = ev.get("holds")
+    if holds is None:
+        holds = [{"hold": ev["hold"], "release": ev.get("release", {})}] if ev.get("hold") else []
+    res["n_holds"] = len(holds)
+    hold_starts = []  # per hold: end of the ack (or the instruction), where silence must begin
+    for k, h in enumerate(holds):
+        hold, pre = h["hold"], "" if k == 0 else f"hold {k + 1}: "
         acks = [t["t"][1] for t in ev["moshi_turns"] if t["role"] == "ack" and hold[0] <= t["t"][0] < hold[1]]
+        hold_starts.append(max([hold[0]] + acks))
         # Skip the ack's fade-out and the release turn's fade-in (assemble.gate margins).
-        a = max([hold[0]] + acks) + POST_S + 0.02
+        a = hold_starts[-1] + POST_S + 0.02
         b = hold[1] - PRE_S - 0.02
         seg = moshi[int(a * sr): int(b * sr)]
-        res["hold_s"] = round(hold[1] - hold[0], 2)
-        res["moshi_max_in_hold"] = float(np.abs(seg).max()) if len(seg) else 0.0
-        if res["moshi_max_in_hold"] > 1e-3:
-            fails.append(f"Moshi channel not silent in hold (max {res['moshi_max_in_hold']:.4f})")
+        mx = float(np.abs(seg).max()) if len(seg) else 0.0
+        if k == 0:
+            res["hold_s"] = round(hold[1] - hold[0], 2)
+            res["moshi_max_in_hold"] = mx
+        if mx > 1e-3:
+            fails.append(f"{pre}Moshi channel not silent in hold (max {mx:.4f})")
 
     # 2b. alignments agree with the audio: each Moshi turn's first word starts where
     #     Moshi's channel actually becomes loud (catches TTS timestamp drift)
@@ -140,17 +152,18 @@ def check_episode(wav_path, il, tok):
             fails.append(f"Moshi word times off from audio onset by up to {max(offs, key=abs):+.2f}s")
 
     # 3. release timing
-    rel = ev.get("release", {})
-    if rel.get("kind") == "timer":
-        err = rel["moshi_onset"] - rel["ref"]
-        res["timer_err_s"] = round(err, 3)
-        if abs(err) > 0.3:
-            fails.append(f"B1 re-ask off by {err:+.2f}s")
-    elif rel.get("kind") == "cue":
-        lat = rel["moshi_onset"] - rel["ref"]
-        res["cue_latency_s"] = round(lat, 3)
-        if not (0.25 <= lat <= 1.0):
-            fails.append(f"cue latency {lat:.2f}s")
+    for k, h in enumerate(holds):
+        rel, pre = h["release"], "" if k == 0 else f"hold {k + 1}: "
+        if rel.get("kind") == "timer":
+            err = rel["moshi_onset"] - rel["ref"]
+            res.setdefault("timer_err_s", round(err, 3))
+            if abs(err) > 0.3:
+                fails.append(f"{pre}B1 re-ask off by {err:+.2f}s")
+        elif rel.get("kind") == "cue":
+            lat = rel["moshi_onset"] - rel["ref"]
+            res.setdefault("cue_latency_s", round(lat, 3))
+            if not (0.25 <= lat <= 1.5):  # moshi_gap is 0.45-1.35 s
+                fails.append(f"{pre}cue latency {lat:.2f}s")
 
     # 4. human turns audible over the noise floor
     quiet = [t for t in ev["human_turns"]]
@@ -166,23 +179,43 @@ def check_episode(wav_path, il, tok):
     if snrs and min(snrs) < 6:
         fails.append(f"a human turn is only {min(snrs):.1f} dB over the floor")
 
+    # 6. humans and Moshi never talk over each other
+    for h in ev["human_turns"]:
+        for mt in ev["moshi_turns"]:
+            ov = min(h["t"][1], mt["t"][1]) - max(h["t"][0], mt["t"][0])
+            if ov > 0.05:
+                fails.append(f"{h['spk']} overlaps Moshi by {ov:.2f}s at {max(h['t'][0], mt['t'][0]):.1f}s")
+
+    # 7. one training window
+    if d["meta"]["split"] == "train" and dur > 60.0:
+        fails.append(f"train episode is {dur:.1f}s (> 60 s window)")
+
+    # 8. the user speaks first, never Moshi
+    if ev["moshi_turns"] and ev["human_turns"] and ev["moshi_turns"][0]["t"][0] < ev["human_turns"][0]["t"][0]:
+        fails.append("Moshi speaks first")
+
     # 5. text stream from the trainer's Interleaver
     toks = text_stream(il, al, dur)
     res["frames"] = len(toks)
     res["n_pad"] = sum(t == PAD for t in toks)
     res["n_epad"] = sum(t == EPAD for t in toks)
-    if hold:
-        f_on = next(i for i, t in enumerate(toks) if i >= int(rel["moshi_onset"] * FR) - 1 and t not in (PAD, EPAD))
-        f_hold = int(np.ceil(max([hold[0]] + acks) * FR)) + 1
-        res["release_frame"] = f_on
-        res["epad_before_release"] = toks[f_on - 1] == EPAD
-        res["pads_in_hold"] = sum(t == PAD for t in toks[f_hold: f_on])
-        res["hold_frames"] = f_on - f_hold
-        res["stream_at_release"] = rle(toks, tok, max(f_on - 6, 0), min(f_on + 4, len(toks)))
-        if not res["epad_before_release"]:
-            fails.append("no EPAD right before the release frame")
-        if res["pads_in_hold"] < res["hold_frames"] - 1:
-            fails.append("non-PAD tokens inside the hold")
+    for k, (h, start) in enumerate(zip(holds, hold_starts)):
+        pre = "" if k == 0 else f"hold {k + 1}: "
+        onset = h["release"]["moshi_onset"]
+        f_on = next(i for i, t in enumerate(toks) if i >= int(onset * FR) - 1 and t not in (PAD, EPAD))
+        f_hold = int(np.ceil(start * FR)) + 1
+        epad = toks[f_on - 1] == EPAD
+        pads, frames = sum(t == PAD for t in toks[f_hold: f_on]), f_on - f_hold
+        if k == 0:
+            res["release_frame"] = f_on
+            res["epad_before_release"] = epad
+            res["pads_in_hold"] = pads
+            res["hold_frames"] = frames
+            res["stream_at_release"] = rle(toks, tok, max(f_on - 6, 0), min(f_on + 4, len(toks)))
+        if not epad:
+            fails.append(f"{pre}no EPAD right before the release frame")
+        if pads < frames - 1:
+            fails.append(f"{pre}non-PAD tokens inside the hold")
     res["fails"] = fails
     res["ok"] = not fails
     return res, toks, d, audio
@@ -194,6 +227,7 @@ def plot_episode(png, d, audio, toks, res):
     import matplotlib.pyplot as plt
 
     ev = d["events"]
+    holds = ev.get("holds") or ([{"hold": ev["hold"], "release": ev.get("release", {})}] if ev.get("hold") else [])
     sr = 24000
     t = np.arange(len(audio)) / sr
     fig, axes = plt.subplots(3, 1, figsize=(14, 4.6), sharex=True,
@@ -208,17 +242,17 @@ def plot_episode(png, d, audio, toks, res):
     for ax in axes[:2]:
         ax.set_ylim(-1, 1)
         ax.set_yticks([])
-        if ev.get("hold"):
-            ax.axvspan(*ev["hold"], color="#e53e3e", alpha=0.07, lw=0)
+        for h in holds:
+            ax.axvspan(*h["hold"], color="#e53e3e", alpha=0.07, lw=0)
     axes[0].set_ylabel("Moshi\n(left)", rotation=0, ha="right", va="center", fontsize=8)
     axes[1].set_ylabel("user+friend\n(right)", rotation=0, ha="right", va="center", fontsize=8)
     for dd in ev["distractors"]:
         axes[1].axvspan(*dd["t"], ymin=0.88, ymax=1.0, color="#9b2c2c", alpha=0.8, lw=0)
         axes[1].text(dd["t"][0], -0.95, dd["code"], fontsize=7, color="#9b2c2c")
-    rel = ev.get("release", {})
-    if rel.get("ref") is not None:
-        for ax in axes:
-            ax.axvline(rel["ref"], color="#e53e3e", lw=0.8, ls="--")
+    for h in holds:
+        if h["release"].get("ref") is not None:
+            for ax in axes:
+                ax.axvline(h["release"]["ref"], color="#e53e3e", lw=0.8, ls="--")
     # text stream strip: grey = PAD, red = EPAD, blue = word tokens
     ft = np.arange(len(toks)) / FR
     cols = ["#e2e8f0" if x == PAD else "#e53e3e" if x == EPAD else "#2b6cb0" for x in toks]
@@ -246,11 +280,11 @@ def write_index(out_dir, results):
 <audio controls preload="none" src="episodes/{r['id']}.wav"></audio>
 <img src="plots/{r['id']}.png"><p class=facts>{facts}<br><code>{html.escape(r.get('stream_at_release', ''))}</code></p>
 <details><summary>script</summary>{script}</details></section>""")
-    (out_dir / "index.html").write_text(f"""<!doctype html><meta charset=utf-8><title>Demo episodes</title>
+    (out_dir / "index.html").write_text(f"""<!doctype html><meta charset=utf-8><title>Episodes</title>
 <style>body{{font:14px system-ui;max-width:1200px;margin:24px auto;padding:0 16px}}img{{width:100%}}audio{{width:100%}}
 section{{border-top:1px solid #ddd;padding:12px 0}}small{{color:#666;font-weight:normal}}.facts{{color:#444;font-size:12px}}
 .moshi{{color:#2b6cb0}}.user{{color:#2f855a}}.friend{{color:#b7791f}}.ts{{color:#999;font-size:11px}}</style>
-<h1>Demo episodes</h1><p>Stereo: <b>left = Moshi</b>, <b>right = user + friend + noise</b>. Use headphones.
+<h1>Episodes</h1><p>Stereo: <b>left = Moshi</b>, <b>right = user + friend + noise</b>. Use headphones.
 Red band = hold (Moshi must stay silent). Dashed line = release reference (cue end, or instr_end + N). Dark red ticks = distractors.
 Bottom strip = Moshi's text stream as built by moshi-finetune's Interleaver: grey PAD, red EPAD, blue word tokens.</p>
 {''.join(rows)}""")

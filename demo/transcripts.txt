@@ -1,0 +1,202 @@
+── s00_B1_std  B1_std  (train, 23.8 s, user=alba, friend=charles)
+    0.6  USER   Help me decide something for my trip, like, I can't make up my mind.
+    4.7  MOSHI  Okay! Would you rather visit Paris in the rain or Rome in the heat?
+    8.0  USER   I'll need about three seconds. Ask me again after that.
+        ┌─ hold starts: Moshi must stay silent
+        └─ hold ends: Moshi silent 3.0 s (timer N=3 s, re-ask +0.01 s)
+   13.7  MOSHI  Alright, so Paris in the rain or Rome in the heat?  (release)
+   16.5  USER   Rome, I guess. I hate being cold.
+   20.0  MOSHI  Rome it is! Just pack sunscreen and drink lots of water.
+
+
+── s01_B1_double  B1_double  (train, 54.0 s, user=cosette, friend=anna)
+    0.6  USER   Give me a mental math question about flights, I'm trying to practice.
+    4.8  MOSHI  A flight leaves at two in the afternoon and lasts five hours. When does it land?
+   10.4  USER   Ooh, tough one. Give me five seconds to think, then ask again.
+        ┌─ hold starts: Moshi must stay silent
+        └─ hold ends: Moshi silent 4.9 s (timer N=5 s, re-ask -0.09 s)
+   18.7  MOSHI  Alright, so what time does that five hour flight land?  (release)
+   21.7  USER   Seven in the evening, right?
+   23.7  MOSHI  Right on the money. Seven o'clock, no time zones needed.
+   26.5  USER   Alright, ask me another.
+   28.7  MOSHI  Sure! What gets wetter the more it dries?
+   31.1  USER   Hmm, give me ten seconds and then ask me that again.
+        ┌─ hold starts: Moshi must stay silent
+        └─ hold ends: Moshi silent 10.0 s (timer N=10 s, re-ask -0.00 s)
+   43.6  MOSHI  So, any guess on what gets wetter as it dries?  (release)
+   46.4  USER   Oh, like, a towel? Yeah, a towel.
+   50.7  MOSHI  Nailed it! A towel it is. You're good at this.
+
+
+── s02_B1_early  B1_early  (train, 38.3 s, user=caro_davy, friend=marius)
+    0.6  USER   Quiz me on something about the weather, like, anything.
+    4.1  MOSHI  Easy one first. How many seasons are there in a year?
+    7.5  USER   Let me think about that for thirty seconds. Then ask again.
+        ┌─ hold starts: Moshi must stay silent
+   11.9  MOSHI  Of course.  (ack)
+   28.7  USER   Got it. Four. Spring, summer, fall, and winter.
+        └─ hold ends: Moshi silent 23.6 s (1.12 s after the cue)
+   34.8  MOSHI  Perfect! All four, and in the right order too.  (release)
+
+
+── s03_B1_rescind  B1_rescind  (train, 36.8 s, user=fantine, friend=paul)
+    0.7  USER   Ask me something that tests my memory, I'm kind of in the mood.
+    4.9  MOSHI  Okay, what's the capital city of Japan?
+    7.3  USER   Hang on, thirty seconds. Then ask me one more time.
+        ┌─ hold starts: Moshi must stay silent
+   11.0  MOSHI  Of course.  (ack)
+   24.4  USER   Oh, wait, I'm ready. Ask me again.
+        └─ hold ends: Moshi silent 17.3 s (1.34 s after the cue)
+   27.7  MOSHI  Alright, so what's the capital of Japan again?  (release)
+   30.6  USER   Tokyo. It's Tokyo, for sure.
+   33.0  MOSHI  Yep, Tokyo! You clearly paid attention in geography class.
+
+
+── s04_B2_std  B2_std  (train, 46.5 s, user=anna, friend=eponine)
+    0.6  USER   I'm trying to find a great soup recipe for this weekend!
+    4.2  MOSHI  Fun! Do you want something creamy, or more of a brothy soup?
+    8.3  FRIEND Sorry to interrupt, got a minute?
+   10.1  USER   Can you wait? Chris is here. Don't talk until I'm back.
+        ┌─ hold starts: Moshi must stay silent
+   13.9  MOSHI  Of course.  (ack)
+   16.1  FRIEND Did you ever call the guy about the bike?  [D1a]
+   18.5  USER   I did! He said it'll be ready Thursday.
+   22.2  USER   Did you want to ride together once it's fixed?  [D1b]
+   24.9  FRIEND Absolutely, the weather's supposed to be great all week.
+        ··· 2.3 s silence [D2a]
+   30.1  USER   Anyway, I'm done worrying about it. Thursday it is!  [D3a]
+   33.7  FRIEND Good plan. Maybe we can ride along the river.
+   36.2  USER   Okay, sorry, where were we?
+        └─ hold ends: Moshi silent 25.6 s (0.86 s after the cue)
+   38.5  MOSHI  Welcome back! Now, about your weekend soup, creamy or brothy, which sounds better to you?  (release)
+   43.2  USER   Creamy, definitely! Something really cozy.
+
+
+── s05_B3_std  B3_std  (train, 46.8 s, user=caro_davy, friend=fantine)
+    0.6  USER   I am trying to choose a painting for my living room wall.
+    3.7  USER   Let me get through all three before you say anything.
+        ┌─ hold starts: Moshi must stay silent
+    7.0  MOSHI  Go ahead.  (ack)
+    8.4  USER   The first one is a big painting of the sea.
+   11.3  USER   It has deep blue colors and looks very calm.
+        ··· 4.2 s silence [D2b]
+   18.3  USER   The second option is a small picture of a old man.
+   21.7  USER   The face is serious, and the frame is gold.
+   27.2  USER   And the third one, a bright painting with many shapes.
+   30.7  USER   It is modern and makes the room feel alive.
+   33.6  USER   So those are the three options. What do you think?
+        └─ hold ends: Moshi silent 31.8 s (1.26 s after the cue)
+   38.0  MOSHI  Moshi thinks the sea painting is calm, the old man is a bit heavy, and the bright shapes would give your room the most energy.  (release)
+   44.2  USER   Yes, the sea is very peaceful.
+
+
+── s06_B3_early  B3_early  (train, 31.8 s, user=alba, friend=eponine)
+    0.6  USER   I am looking for a nice gift for my friend who loves art.
+    3.8  USER   Let me lay out all three options first. No comments until I'm done.
+        ┌─ hold starts: Moshi must stay silent
+    8.2  MOSHI  Sure.  (ack)
+    9.7  USER   The first one is a set of good colored pencils.
+   12.3  USER   They are soft and have many different colors.
+   16.4  USER   The second option is a ticket to the city art museum.
+   19.4  USER   We can go together on her birthday.
+   21.2  USER   Oh, wait, there are just two. What do you think?
+        └─ hold ends: Moshi silent 17.5 s (1.10 s after the cue)
+   24.9  MOSHI  Colored pencils are useful, and the museum ticket is special because you can go together.  (release)
+   29.3  USER   She does use her pencils every day.
+
+
+── s07_B3_rescind  B3_rescind  (train, 27.4 s, user=cosette, friend=bill_boerst)
+    0.6  USER   Moshi, I must choose a game for the family party tonight.
+    3.9  USER   I'll describe three options. Wait until I'm done with all of them.
+        ┌─ hold starts: Moshi must stay silent
+    8.1  MOSHI  Go ahead.  (ack)
+    9.9  USER   The first one is a game where we guess riddles.
+   12.6  USER   The winner is the person who answers the most.
+   15.5  USER   Actually, never mind the rest. What do you think about that first one?
+        └─ hold ends: Moshi silent 13.4 s (0.76 s after the cue)
+   20.4  MOSHI  The riddle game is nice, but some people may feel nervous if they cannot answer.  (release)
+   24.4  USER   Yes, my uncle hates losing at riddles.
+
+
+── s08_ORD  ORD  (train, 21.8 s, user=caro_davy, friend=marius)
+    0.7  USER   Good morning, Moshi. I'd like to bake something nice for the neighbors, but nothing too fussy.
+    6.6  MOSHI  Good morning! How about a simple apple pie? It's easy and everybody loves it.
+   11.8  USER   Oh, that sounds lovely, though my knees don't like standing long, so is it quick to make?
+   17.5  MOSHI  It takes about thirty minutes of work, and you can sit while you slice the apples.
+
+
+── s09_DECOY  DECOY  (train, 20.0 s, user=stuart_bell, friend=marius)
+    0.6  USER   I just learned that you can drive across the whole country of Luxembourg in under an hour, that's amazing!
+    6.7  MOSHI  It really is tiny! Are you planning a trip there?
+    9.9  USER   Maybe! Moshi, I read that a river can rise a foot in seconds after a dam opens.
+   15.6  MOSHI  Wow, that's fast. Nature and engineering together can be pretty powerful.
+
+
+── s10_B2_D4  B2_D4  (test_distract, 47.7 s, user=mary, friend=fantine)
+    0.6  USER   I want to find the best pizza place in my neighborhood!
+    3.5  MOSHI  Great mission! Do you prefer thin crust or thick crust?
+    8.0  FRIEND Hey! Are you busy?
+    9.3  USER   I need to talk to Jordan real quick. Stay quiet till I tell you I'm back.
+        ┌─ hold starts: Moshi must stay silent
+   13.9  FRIEND Are you free to help me move a couch?  [D1a]
+   15.5  USER   Totally! When do you want to do it?  [D1b]
+   18.2  FRIEND Sunday afternoon works best for me, if you're free.
+   22.0  FRIEND Hang on, I need to turn off the oven.
+   26.4  FRIEND Okay, I'm back, everything's fine.  [D4]
+   28.1  USER   Sunday's perfect! I'm back to my normal schedule then.  [D3a]
+        ··· 2.1 s silence [D2a]
+   33.6  FRIEND Great, I'll order some food for after, my treat.
+   36.0  USER   Wow, thank you, that sounds fantastic!
+   38.5  USER   Okay, that's sorted. I'm back.
+        └─ hold ends: Moshi silent 27.6 s (0.73 s after the cue)
+   40.8  MOSHI  Welcome back! About your pizza search, do you like thin crust or thick crust?  (release)
+   45.2  USER   Thin crust, super crispy, please!
+
+
+── s11_COND_keyword  COND_keyword  (test_cond, 41.1 s, user=fantine, friend=cosette)
+    0.6  USER   Moshi, I need a fun movie for tonight, something that makes me laugh!
+    4.8  MOSHI  Love that! Do you want a silly comedy or a heartwarming one?
+    9.3  USER   Don't say anything until I say pineapple.
+        ┌─ hold starts: Moshi must stay silent
+   12.1  MOSHI  Got it.  (ack)
+   13.4  FRIEND Do you still have my umbrella from last week?  [D1a]
+   16.0  USER   Yes! I'll drop it off on my way home.
+   19.1  USER   Will you be home later this afternoon, though?  [D1b]
+   21.4  FRIEND I will, I'm just running errands until four.
+   24.3  USER   Perfect, where were we? Oh right, I'll come by at five.  [D3a]
+   28.3  FRIEND Sounds great, see you then!
+   30.2  USER   Alright, pineapple. You can talk now.
+        └─ hold ends: Moshi silent 21.8 s (0.83 s after the cue)
+   32.9  MOSHI  Welcome back! Now, for tonight's movie, do you want a silly comedy or a heartwarming one?  (release)
+   37.8  USER   A silly comedy, something totally ridiculous!
+
+
+── s12_COND_phone  COND_phone  (test_cond, 39.4 s, user=bill_boerst, friend=caro_davy)
+    0.6  USER   I just got watercolor paints and I'm so excited to start painting!
+    4.4  MOSHI  That's wonderful! Are you thinking of painting a landscape or something else?
+    8.3  USER   My phone's ringing. Don't say anything until I'm off.
+        ┌─ hold starts: Moshi must stay silent
+   12.1  MOSHI  No problem.  (ack)
+   13.7  USER   Yes, I wouldn't miss it! Seven o'clock, right?
+   19.7  USER   Sure thing! Okay, so I'll grab juice and soda.
+   26.4  USER   I think it closes at nine, so plenty of time.
+   29.2  USER   Okay, sorry, I'm off the phone.
+        └─ hold ends: Moshi silent 20.1 s (0.56 s after the cue)
+   31.1  MOSHI  Welcome back! So, about your new watercolors, are you leaning toward painting a landscape?  (release)
+   36.6  USER   Yes, maybe mountains with a big sunset!
+
+
+── s13_B1_minutes  B1_minutes  (test_cond, 82.7 s, user=alba, friend=stuart_bell)
+    0.6  USER   Can you ask me a would-you-rather? Something about vacations, like, fun.
+    5.5  MOSHI  Would you rather spend a week on a beach or a week in the mountains?
+    8.8  USER   Hmm, give me a minute and then ask me that again.
+        ┌─ hold starts: Moshi must stay silent
+   12.6  MOSHI  Sure, take your time.  (ack)
+   57.4  USER   Beach has better snacks, probably  [D2c]
+   63.1  USER   Hmm, mountains are pretty though  [D2c]
+        └─ hold ends: Moshi silent 60.1 s (timer N=60 s, re-ask +0.14 s)
+   71.9  MOSHI  So, beach for a week or mountains for a week?  (release)
+   74.7  USER   Beach, honestly. Snow trips are kind of exhausting.
+   78.9  MOSHI  Beach life it is! Warm sand beats a long hike any day.
+
+
