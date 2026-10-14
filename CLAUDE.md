@@ -46,7 +46,7 @@ or self-generated data. The brief, condensed:
 | Test suites `data/test_*` | Done: 7 × 90 = 630 episodes / 6.1 h, all pass check.py, no script overlap with train |
 | moshi-finetune patches | 3 patches, tested to stack on upstream main `2acc879f` |
 | Training configs + GPU bootstrap | Written; pre-launch review done 2026-10-14 (configs load with the real `TrainArgs`, patches apply to pristine upstream, data audited); **not yet run on a GPU** |
-| Eval harness | Details agreed with the user (see "Eval harness"). `eval_score.py` written and oracle-tested; `eval_gen.py` (GPU) and `eval_report.py` not written yet |
+| Eval harness | `eval_gen.py` / `eval_score.py` / `eval_report.py` / `scripts/eval_dev.sh` built and CPU-tested (see "Eval harness"); not yet run with the 7B weights. Whisper + LLM judge for final tests not built |
 | Human-recorded test set | Not started (the user records ~40 episodes later) |
 | Training runs, report, deliverable demo | Not started |
 | Demo listening pass | Not recorded anywhere; ask the user whether it happened |
@@ -82,16 +82,18 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
 3. **On the 1× pod:** `apt-get install -y rsync` on the pod, then the two rsyncs (worktree code,
    main-checkout `data/`, ~6.2 GB; commands in the `scripts/gpu_bootstrap.sh` header), then
    `bash scripts/gpu_bootstrap.sh`. Everything (uv, its Python 3.12, the env, weights,
-   configs) lands on the volume. Note the measured s/step and peak memory from `smoke.log`
-   and update the compute table below. Stop the pod.
+   configs) lands on the volume. Its step 6 runs the eval selftest + a 40-episode R0
+   generation benchmark. Note s/step and peak memory (`smoke.log`) and ms/step
+   (`eval_bench.log`) and update the compute table below. Stop the pod.
 4. **On the 4× pod:** `nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml
    configs/R?_1h_*.yaml > /workspace/logs/parallel.log 2>&1 &`. That's one run per GPU,
    with the next queued config starting as a GPU frees up: R0–R3 start together, R4 takes
    R0's GPU a few minutes later, R5 starts when the first of R1–R3 finishes.
-5. **Finish the eval harness** (`eval_gen.py`, `eval_report.py`; see "Eval harness"). Stop the
-   4× pod once phase 1 has trained; the checkpoints stay on the volume, and harness debugging
-   needs only 1×. Then: R0 generation eval on dev, phase-1 dev evals, then choose E and the
-   top 2 LRs. After that R6–R7, test suites on the final checkpoints, listening log, report.
+5. **Phase-1 generation evals** as soon as runs finish, on the same 4× pod:
+   `nohup bash scripts/eval_dev.sh dev_80 R0 R1_1h_lr2e-06 R2_1h_lr1e-05 R3_1h_lr5e-05
+   R4_1h_lr0.0002 R5_1h_lr0.0005 > /workspace/logs/eval_dev.log 2>&1 &`, then
+   `eval_report` (see "Eval harness"). Stop the 4× pod when the evals are done. Then choose E
+   and the top 2 LRs; R6–R7, test suites on the final checkpoints, listening log, report.
 6. Human-recorded test set: label each episode with the same `events` schema.
 
 ## Environment on this Mac
@@ -362,9 +364,13 @@ silence/build_dev.py       dev set: unused + screened train packs, balanced, dev
 silence/screen_packs.py    held-out pack file minus packs overlapping train/dev
 silence/check_overlap.py   train vs held-out audit (packs, near-dup scripts, shared lines, voices)
 silence/make_configs.py    moshi-finetune yamls per run (fixed epochs) + checkpoint -> epoch maps
+silence/eval_gen.py        GPU: batched generation with the script forced outside scored windows; selftest
+silence/eval_score.py      VAD segments + events -> per-hold / per-response behavior scores (+ oracle mode)
+silence/eval_report.py     bootstrap CIs, summary tables, per-epoch curves, threshold sensitivity
 silence/list_kyutai_voices.py, calibrate_offset.py   only for the optional 1.6B Kyutai TTS
 scripts/gpu_bootstrap.sh   GPU box: moshi-finetune + 3 patches (uv.lock env), pinned weights, configs, smoke
 scripts/run_parallel.sh    run configs one per GPU (own CUDA device + master port + log); skips .done, refuses leftover run_dirs
+scripts/eval_dev.sh        generation eval of whole runs on dev_80 / dev_200, one run per GPU, then scoring
 patches/moshi-finetune-audio-mask.patch    mask_main_speech_audio (no audio loss on Moshi's TTS speech)
 patches/moshi-finetune-eval-reload.patch   fresh eval loader per eval + text/audio dev loss logged
 patches/moshi-finetune-text-tail.patch     no text loss on the zero-padded tail of a window
@@ -505,56 +511,87 @@ figure of 15 s/step was pessimistic). Measure in the smoke run.
 and audio-hours seen. Report unique episodes, packs and TTS clips, and total / speech /
 hold-silence hours, separately (`ledger.json`).
 
-## Eval harness (details agreed 2026-10-14; `eval_score.py` written)
+## Eval harness (built 2026-10-14; CPU-tested, not yet run on the GPU)
 
 **Agreed decisions (user, 2026-10-14):**
 1. Timing from Silero VAD on Moshi's decoded audio; words from Moshi's own text stream for
-   dev sweeps. Whisper ASR only on final test evals and the listening log.
-2. 1 sample per episode for dev sweeps, 3 for final test evals. Same seed per episode across
-   models.
+   dev sweeps. Whisper ASR only on final test evals and the listening log (not built yet).
+2. 1 sample per episode for dev sweeps, 3 for final test evals (`--samples 3`). Same seed per
+   episode across models (common random numbers).
 3. LLM judge for resume appropriateness: test evals only, 1 sample (~2.5k calls ≈ $10; ask
-   before running).
-4. Generation on dev_80 every epoch in phase 1 if R0 shows ≤ 2 min per checkpoint, else every
-   2; dev_200 for the top candidates and in phase 2.
+   before running). Not built yet.
+4. Generation on dev_80 every epoch in phase 1 if the R0 benchmark shows ≤ 2 min per
+   checkpoint, else every 2; dev_200 for the top candidates and in phase 2.
 5. Re-force the script between scored windows (per-frame forcing mask), so every hold is
    scored, not just the first. Ordinary episodes: free-run after the first user turn.
-6. Thresholds as below (2.5 s ack grace; ≥ 1 s or > 3 words; 3 s windows; B1 tolerance
-   max(1.5 s, 0.2N)); report their sensitivity.
+6. Thresholds: 2.5 s ack grace; violation = ≥ 1 s speech or > 3 words; 3 s resume / response
+   / distractor windows; B1 tolerance max(1.5 s, 0.2N). Sensitivity is reported.
 
-**`silence/eval_score.py`** (done): free windows per episode, VAD segments, per-hold
-violation / outcome (on_time | late | silent) / latency / timer error / talking-through /
-distractor reactions, ordinary responses (episodes without holds only), barge-in into
-mid-turn pauses. B1 N = 3 s holds have no violation region (grace 2.5 s + tolerance 1.5 s
-> N), so `violated` is None there and only their timing counts. **Oracle test on dev_80**
-(ground-truth Moshi channel): 0% violations (n=58), 100% on time (n=63), cue latency median
-0.92 s, timer error median −0.11 s, 100% ordinary responses, 0 distractor reactions. Negative
-control (user channel scored as Moshi): 76% violations, 94% silent at release.
-`silero-vad` must be added to the GPU env for eval.
+**Pipeline** (GPU box, moshi-finetune's env `$PY=/workspace/moshi-finetune/.venv/bin/python`):
+1. `silence/eval_gen.py run` (GPU): per batch of episodes, Mimi-encodes both channels, builds
+   the script's text stream with moshi-finetune's own Interleaver, and generates with
+   `ForcedLMGen`, a copy of `LMGen.step` (moshi 061cc4c) that forces Moshi's text + 8 audio
+   codebooks to the script on every frame outside the free windows (per batch element; forced
+   text is substituted BEFORE the depformer, so forced audio is conditioned on it, as in
+   training). Then Mimi-decodes Moshi's codes, runs VAD, and writes `<id>.json` (words,
+   segments, text tokens), `codes.npz` (int16 codes, to re-decode later), `meta.json` (written
+   last = finished). `--ckpt base ckpt1 ckpt2 …`: base weights load once (unfused LoRA), only
+   the LoRA tensors are swapped per checkpoint, output to `--out/<checkpoint_XXXXXX|base>/`;
+   finished checkpoints are skipped on a rerun. `--save-wav` writes stereo listening wavs
+   (left = generated Moshi, right = user). `--force-all` = sanity mode (output = the script).
+2. `silence/eval_score.py <gen dir>`: scores → `scores.jsonl` + printed summary.
+3. `silence/eval_report.py <eval root> --configs configs --runs /workspace/runs --out …`:
+   per checkpoint, pooled rates with 95% bootstrap CIs over episodes, epoch from
+   `configs/<run>.epochs.json`, text/audio dev loss from `<run_dir>/metrics.eval.jsonl` →
+   `summary.csv`, `summary.md`, curves per set (matplotlib; it's not in the GPU env, so
+   rsync `/workspace/eval` back and plot on the Mac). `--sensitivity` rescores from the saved
+   segments at other thresholds (no regeneration).
+4. `scripts/eval_dev.sh dev_80 R0 R1_… R5_…`: steps 1–2 for whole runs, one run per GPU.
+5. `gpu_bootstrap.sh` step 6 runs `eval_gen selftest` and a 40-episode R0 benchmark on the 1×
+   pod (ms/step → the every-epoch vs every-2-epochs decision).
 
-Original proposal:
-- An offline driver around `moshi.models.lm.LMGen`, with **prefix forcing**: force Moshi's
-  text + audio tokens to ground truth until `instr_end` (ordinary: until the first user turn
-  ends), then free-run. This needs a small override of the sampled tokens for the first k
-  frames. **Must batch** episodes: at batch 1 generation is only ~2–3× realtime.
-- Score **decoded audio** (Mimi decode → Silero VAD + ASR with word timestamps); log the text
-  stream as a diagnostic.
-- Metrics from each episode's `events`:
-  - **hold violation:** ≥ 1 s or > 3 words of Moshi speech inside [instr_end + 2.5 s ack
-    grace, release]
-  - **distractor violation:** a violation starting within 3 s after a distractor, per code
-  - **resume success / latency:** onset within [cue_end, cue_end + 3 s]. B1: success if
-    |onset − (instr_end + N)| ≤ max(1.5 s, 0.2N), plus the signed error.
-  - **resume appropriateness:** LLM judge on the post-release transcript
-  - **ordinary responsiveness:** a response within 3 s of the user's turn end; compare to R0
-  - **over-suppression:** no response when one was due
-  - optional voice-drift speaker similarity. The audio mask means Moshi's speech audio gets
-    no training signal, so drift at high LR shows up only here or by ear.
-- One sample per episode at default temperatures; 95% bootstrap CIs. Expect ±13 pts on
-  pooled hold behavior with dev_80, ±8 with dev_200, ±10 per 90-episode test suite.
-- First GPU job of the harness: R0 on dev, which doubles as the throughput benchmark. That
-  decides whether generation runs every epoch or every 2–4.
-- Plots: rate vs. data size (log x), one line per LR, per suite. A listening log of
-  successes and failures per suite.
+**User-frame alignment (important, verified):** training feeds the model, at step t, the
+delayed codes of frame t−1 (`LMModel.forward` prepends the initial token), so Moshi's text at
+frame t is predicted from user audio up to frame t−1. `LMGen.step` writes the user frame
+given at step s into the column the model reads at step s, i.e. the slot training fills with
+frame s−1. Feeding a wav straight into `LMGen` therefore hands the model the user's audio one
+frame (80 ms) earlier than training did. `eval_gen` feeds frame s−1 at step s
+(`--user-shift 1`). Checked in fp32 on a tiny random LM with moshi 061cc4c: shift 1 reproduces
+every training input column (text, Moshi audio, user audio) and the text logits to 3e-6;
+shift 0 matches 2.5% of columns. `eval_gen selftest` repeats the check on the real model.
+
+**Free windows** (`eval_score.free_windows`): per hold, [instr_end, next scripted human turn
+after the release], at least release ref + 4 s, capped 1 s before the next hold's instruction.
+Ordinary episodes (no holds): from the end of the first human turn to the end.
+
+**Scoring** (`eval_score.py`): per hold, `violated` (≥ 1 s or > 3 words inside
+[instr_end + grace, ref − tolerance]; None when that region is empty, i.e. B1 N = 3 s, whose
+timing is still scored), `outcome` on_time | late | no_onset (no new onset in
+[ref − tol, ref + 3 s]: silent, or still talking from before; see `talking_through`),
+`latency`, `timer_err`, `words_in_hold`, per distractor `reacted` (a segment STARTED within 3 s
+of it: attributable) and `overlapped` (≥ 0.5 s of speech after it, however it started).
+Ordinary responses only on hold-free episodes; barge-in into mid-turn pauses; onsets inside
+human turns.
+
+**Tests so far (CPU, Mac):**
+- Oracle (ground-truth Moshi channel, dev_80): 0% violations (n=58), 100% on time (n=63), cue
+  latency median 0.92 s, timer error median −0.11 s, 100% ordinary responses, 0 distractor
+  reactions. Negative control (user channel as Moshi): 76% violations, 94% no onset.
+- `eval_gen run` end to end with real Mimi + tokenizer + Interleaver and a tiny random LM
+  (moshi 061cc4c, torch 2.6.0): `--force-all` output scores identically to the oracle on the
+  same 6 episodes (the Mimi round trip keeps timing); free mode runs and a babbling model
+  scores 100% violations; `selftest` on real data: shift 1 = 100% argmax agreement.
+- LoRA swap: loads checkpoints exactly; `base` (lora_B = 0) reproduces the LoRA-free model
+  token for token; multi-checkpoint layout + resume work. `eval_dev.sh` tested with a fake
+  python.
+- Not yet run: anything with the 7B weights (memory, speed, bf16 selftest agreement).
+
+**Memory:** the KV cache is sized by the attention context (3000 frames ≈ 1.6 GB per
+sequence for the 7B). `set_context` shrinks it to the batch's frame count (≥ the sequence,
+so attention is unchanged): ~0.4 GB per 60 s episode, so batch 40–80 fits next to the 15 GB
+model. Default `--batch 40`; try 80 after the benchmark.
+
+**Still to build:** Whisper ASR pass + LLM judge for the final test evals; the listening log.
 
 ## Known gaps / TODO
 

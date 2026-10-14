@@ -45,6 +45,8 @@ export UV_INSTALL_DIR=$W/bin UV_PYTHON_INSTALL_DIR=$W/uv-python UV_CACHE_DIR=$W/
        UV_PYTHON_PREFERENCE=only-managed UV_PYTHON=3.12 UV_NO_MODIFY_PATH=1 PATH="$W/bin:$PATH"
 [ -x "$W/bin/uv" ] || curl -LsSf https://astral.sh/uv/install.sh | sh
 (cd "$MF" && uv sync --frozen)
+# Eval only (silence/eval_score.py VAD). uv sync removes it again on a rerun; reinstalled here.
+(cd "$MF" && uv pip install silero-vad==6.2.3)
 (cd "$MF" && uv pip freeze) > "$W/pip-freeze.txt"   # exact environment, for the report
 
 echo "== 2. weights @ ${MOSHI_REV:0:7}"
@@ -86,6 +88,18 @@ if ! grep -q "text_eval_loss" "$W/smoke.log"; then echo "SMOKE FAIL: no text_eva
 n_err=$(grep -ci "error" "$W/smoke.log" || true)
 [ "$n_err" -eq 0 ] || echo "WARNING: $n_err lines mention 'error' (sphn skips unreadable wavs with only a log line)"
 echo "SMOKE OK ($n_ckpt checkpoints, no NaN). Peak memory and s/step are in $W/smoke.log."
+
+echo "== 6. eval harness: alignment selftest + base-model generation benchmark (40 dev episodes)"
+cd "$REPO"
+CUDA_VISIBLE_DEVICES=0 "$PY/python" -m silence.eval_gen selftest --episodes data/dev/dev_80.jsonl \
+  --moshi-dir "$MOSHI_DIR" --finetune "$MF" 2>&1 | tee "$W/eval_selftest.log" \
+  || { echo "EVAL SELFTEST FAIL (see $W/eval_selftest.log)"; exit 1; }
+grep -q "=> shift 1 matches training" "$W/eval_selftest.log" || { echo "EVAL SELFTEST FAIL: shift 1 doesn't match"; exit 1; }
+rm -rf "$W/eval/_bench"
+CUDA_VISIBLE_DEVICES=0 "$PY/python" -m silence.eval_gen run --episodes data/dev/dev_80.jsonl --limit 40 --batch 40 \
+  --moshi-dir "$MOSHI_DIR" --finetune "$MF" --out "$W/eval/_bench" 2>&1 | tee "$W/eval_bench.log" || { echo "EVAL BENCH FAIL (see $W/eval_bench.log)"; exit 1; }
+"$PY/python" -m silence.eval_score "$W/eval/_bench" | tail -12
+echo "EVAL OK. Generation speed (ms/step, s per 40 episodes) is in $W/eval_bench.log."
 echo "Next: stop this pod, start a 4x H100 pod on the same network volume, then (no re-setup needed):"
 echo "  cd $REPO && mkdir -p $W/logs && nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml configs/R?_1h_*.yaml > $W/logs/parallel.log 2>&1 &"
 echo "  tail -f $W/logs/parallel.log"

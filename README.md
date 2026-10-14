@@ -14,7 +14,8 @@ decisions and status.
 | Train | `data/train`: 1,150 episodes / 10.49 h, all pass checks. `train_1h.jsonl` = 113 episodes / 1.01 h, `train_10h.jsonl` = 1,101 / 10.01 h (1 h ⊂ 10 h) |
 | Dev | `data/dev`: 200 episodes / 1.97 h, `dev_80` ⊂ `dev_200`, balanced per family, no pack or script overlap with train |
 | Test | `data/test_*`: 7 suites × 90 = 630 episodes / 6.1 h, all pass checks, no script overlap with train |
-| Training | Configs + GPU bootstrap ready and reviewed, not yet run. Eval scorer written; GPU generation driver not yet. |
+| Training | Configs + GPU bootstrap ready and reviewed, not yet run. |
+| Evaluation | Generation harness (forced script + free windows), scorer and report built and CPU-tested; not yet run with the 7B weights. |
 
 ## Episodes
 
@@ -57,8 +58,13 @@ silence/build_dev.py       dev set (train distribution, unseen and screened pack
 silence/screen_packs.py    test packs minus any overlapping train / dev
 silence/check_overlap.py   train vs held-out overlap audit
 silence/make_configs.py    moshi-finetune yamls for the run matrix
+silence/eval_gen.py        GPU generation eval: script forced outside the scored windows
+silence/eval_score.py      behavior scores from VAD + episode events
+silence/eval_report.py     rates with bootstrap CIs, tables, per-epoch curves
 silence/list_kyutai_voices.py, calibrate_offset.py   only for the optional 1.6B Kyutai TTS
-scripts/gpu_bootstrap.sh   GPU box setup + smoke train
+scripts/gpu_bootstrap.sh   GPU box setup + smoke train + eval selftest/benchmark
+scripts/run_parallel.sh    one training run per GPU
+scripts/eval_dev.sh        generation eval of whole runs, one run per GPU
 patches/                   three moshi-finetune patches (see below)
 packs/                     generated packs (+ rejects, smoke test, log)
 demo/                      14 example episodes (one per type; wavs not in git)
@@ -183,11 +189,33 @@ The dev set is for choosing E, LRs and checkpoints. The test suites are run once
 final checkpoints. That's roughly 7–10 H100-hours of training. Configs are written by
 `python -m silence.make_configs` (see its `--help`).
 
+## Evaluation (generated audio)
+
+Each episode is replayed to Moshi: the user channel is fed frame by frame, and Moshi's own
+stream is forced to the script except inside the scored windows (from the end of each hold
+instruction to the next scripted human turn after the release; for ordinary episodes,
+everything after the first user turn). Inside them Moshi runs free. Its decoded audio is run
+through Silero VAD and scored against the episode's `events`: hold violations, resume on time
+/ latency, B1 timer error, distractor reactions per code, ordinary responses, barge-in.
+
+```
+PY=/workspace/moshi-finetune/.venv/bin/python
+$PY -m silence.eval_gen selftest --episodes data/dev/dev_80.jsonl          # alignment check vs training
+nohup bash scripts/eval_dev.sh dev_80 R0 R1_1h_lr2e-06 R2_1h_lr1e-05 R3_1h_lr5e-05 \
+    R4_1h_lr0.0002 R5_1h_lr0.0005 > /workspace/logs/eval_dev.log 2>&1 &   # all checkpoints, one run per GPU
+$PY -m silence.eval_report /workspace/eval --configs configs --runs /workspace/runs --out /workspace/report/phase1
+python -m silence.eval_score --oracle data/dev --jsonl data/dev/dev_80.jsonl   # scorer check on the ground truth
+```
+
+Note: training conditions Moshi's frame-t output on user audio up to frame t-1, while
+`LMGen` fed a wav directly uses frame t. `eval_gen` shifts the user stream by one frame to
+match training (verified exactly on a small model; `selftest` checks the real one).
+
 ## Known gaps
 
 - Pocket TTS has 20 English voices plus Moshi's fixed `michael`, so the voice test has only
   4 unseen speakers.
 - Turn-gap timing is a placeholder distribution; background noise is synthetic.
 - The demo can't be rebuilt from the current code (its hand-written packs were removed).
-- Eval harness (generation with prefix forcing, VAD + ASR scoring) and the human-recorded
-  test set are still to do.
+- Whisper ASR and the LLM judge for the final test evals, and the human-recorded test set,
+  are still to do.
