@@ -1,0 +1,66 @@
+{
+ "id": "demo_01_B1_early",
+ "type": "B1_early",
+ "split": "train",
+ "pack": "b1_0002",
+ "voices": {
+  "moshi": "michael",
+  "user": "mary",
+  "friend": "anna"
+ },
+ "params": {
+  "friend_gain_db": -8.3,
+  "friend_rt60": 0.22,
+  "noise": "brown",
+  "snr_db": 21.9,
+  "ack": true,
+  "N": 10,
+  "N_text": "ten seconds",
+  "release": {
+   "kind": "cue"
+  }
+ },
+ "templates": {
+  "instr": "train:12",
+  "early": "train:3"
+ },
+ "turns": [
+  {
+   "spk": "moshi",
+   "text": "If you could live in any city in the world, which one would you pick?",
+   "at": [
+    "start",
+    0.6
+   ],
+   "role": "topic"
+  },
+  {
+   "spk": "user",
+   "text": "Let me mull it over for ten seconds, then ask me again.",
+   "gap": 0.4684779520539801,
+   "anchor": "instr"
+  },
+  {
+   "spk": "moshi",
+   "text": "Take your time.",
+   "gap": 0.5362085884828605,
+   "role": "ack"
+  },
+  {
+   "spk": "user",
+   "text": "Got it. Probably Tokyo. The food and the trains are amazing.",
+   "at": [
+    "instr_end",
+    6.221829460465197
+   ],
+   "anchor": "cue"
+  },
+  {
+   "spk": "moshi",
+   "text": "Tokyo is a great choice. The food alone would be worth it.",
+   "gap": 0.5773542500381355,
+   "role": "release",
+   "release": true
+  }
+ ]
+}

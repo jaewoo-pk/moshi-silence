@@ -1,0 +1,12 @@
+{"id": "demo_00_B1_std", "type": "B1_std", "split": "train", "pack": "b1_0001", "duration": 31.802, "speech_s": 9.99, "moshi_speech_s": 5.43, "hold_s": 19.836, "clips": 6}
+{"id": "demo_01_B1_early", "type": "B1_early", "split": "train", "pack": "b1_0002", "duration": 20.837, "speech_s": 12.65, "moshi_speech_s": 6.16, "hold_s": 10.429, "clips": 5}
+{"id": "demo_02_B1_rescind", "type": "B1_rescind", "split": "train", "pack": "b1_0001", "duration": 25.605, "speech_s": 11.94, "moshi_speech_s": 5.43, "hold_s": 12.221, "clips": 6}
+{"id": "demo_03_B2_std", "type": "B2_std", "split": "train", "pack": "b2_0001", "duration": 40.378, "speech_s": 29.58, "moshi_speech_s": 7.78, "hold_s": 21.765, "clips": 17}
+{"id": "demo_04_B3_std", "type": "B3_std", "split": "train", "pack": "b3_0001", "duration": 44.358, "speech_s": 31.99, "moshi_speech_s": 11.12, "hold_s": 25.623, "clips": 13}
+{"id": "demo_05_B3_early", "type": "B3_early", "split": "train", "pack": "b3_0002", "duration": 36.137, "speech_s": 25.43, "moshi_speech_s": 5.74, "hold_s": 20.523, "clips": 12}
+{"id": "demo_06_B3_rescind", "type": "B3_rescind", "split": "train", "pack": "b3_0002", "duration": 23.664, "speech_s": 18.89, "moshi_speech_s": 5.18, "hold_s": 10.219, "clips": 9}
+{"id": "demo_07_ORD", "type": "ORD", "split": "train", "pack": "ord_0001", "duration": 20.316, "speech_s": 13.46, "moshi_speech_s": 8.0, "hold_s": 0.0, "clips": 7}
+{"id": "demo_08_DECOY", "type": "DECOY", "split": "train", "pack": "dec_0002", "duration": 14.239, "speech_s": 10.51, "moshi_speech_s": 7.22, "hold_s": 0.0, "clips": 5}
+{"id": "demo_09_B1_std", "type": "B1_std", "split": "test_voice", "pack": "b1_0002", "duration": 18.51, "speech_s": 12.51, "moshi_speech_s": 7.38, "hold_s": 3.233, "clips": 6}
+{"id": "demo_10_B2_D4", "type": "B2_D4", "split": "test_distract", "pack": "b2_0002", "duration": 42.39, "speech_s": 30.059, "moshi_speech_s": 7.01, "hold_s": 25.659, "clips": 18}
+{"id": "demo_11_COND_keyword", "type": "COND_keyword", "split": "test_cond", "pack": "b2_0002", "duration": 34.514, "speech_s": 26.06, "moshi_speech_s": 6.64, "hold_s": 18.282, "clips": 15}

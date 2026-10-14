@@ -1,0 +1,8 @@
+.env
+.venv/
+models/
+cache/
+data/
+demo/episodes/*.wav
+__pycache__/
+.DS_Store

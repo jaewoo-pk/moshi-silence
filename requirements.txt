@@ -1,0 +1,8 @@
+numpy
+scipy
+soundfile
+matplotlib
+pyyaml
+anthropic
+pocket-tts-timestamped
+moshi          # only for check.py (imports moshi-finetune's Interleaver)

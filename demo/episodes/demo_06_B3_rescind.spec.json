@@ -1,0 +1,84 @@
+{
+ "id": "demo_06_B3_rescind",
+ "type": "B3_rescind",
+ "split": "train",
+ "pack": "b3_0002",
+ "voices": {
+  "moshi": "michael",
+  "user": "azelma",
+  "friend": "anna"
+ },
+ "params": {
+  "friend_gain_db": -8.0,
+  "friend_rt60": 0.31,
+  "noise": "brown",
+  "snr_db": 26.8,
+  "ack": true,
+  "k": 3,
+  "n_presented": 1,
+  "distractors": [],
+  "release": {
+   "kind": "cue"
+  }
+ },
+ "templates": {
+  "instr": "train:9",
+  "cue": "train:0"
+ },
+ "turns": [
+  {
+   "spk": "moshi",
+   "text": "What's on your mind?",
+   "at": [
+    "start",
+    0.6
+   ],
+   "role": "topic"
+  },
+  {
+   "spk": "user",
+   "text": "I can't decide what to do this weekend.",
+   "gap": 0.268641857039586
+  },
+  {
+   "spk": "user",
+   "text": "Save your opinion until I've described all three options.",
+   "gap": 0.2747149254587018,
+   "anchor": "instr"
+  },
+  {
+   "spk": "moshi",
+   "text": "Go ahead.",
+   "gap": 0.3892653447196577,
+   "role": "ack"
+  },
+  {
+   "spk": "user",
+   "text": "The first one is go hiking with my roommates.",
+   "gap": 0.843039370621987
+  },
+  {
+   "spk": "user",
+   "text": "The weather's supposed to be nice.",
+   "gap": 0.40951115725066356
+  },
+  {
+   "spk": "user",
+   "text": "Actually, never mind the rest. What do you think about that first one?",
+   "gap": 0.1924999920313267,
+   "anchor": "cue"
+  },
+  {
+   "spk": "moshi",
+   "text": "Hiking with your roommates sounds great, especially if the weather's nice. You should go.",
+   "gap": 0.37480663220488064,
+   "role": "release",
+   "release": true
+  },
+  {
+   "spk": "user",
+   "text": "That's a good plan, actually.",
+   "gap": 0.34067270535005
+  }
+ ]
+}

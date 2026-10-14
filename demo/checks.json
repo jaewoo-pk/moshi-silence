@@ -1,0 +1,250 @@
+[
+ {
+  "id": "demo_00_B1_std",
+  "type": "B1_std",
+  "hold_s": 19.84,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   -0.002,
+   0.006
+  ],
+  "timer_err_s": -0.164,
+  "min_turn_snr_db": 13.2,
+  "frames": 398,
+  "n_pad": 350,
+  "n_epad": 17,
+  "release_frame": 330,
+  "epad_before_release": true,
+  "pads_in_hold": 245,
+  "hold_frames": 246,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581Alri ght, EPAD \u2581what",
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_01_B1_early",
+  "type": "B1_early",
+  "hold_s": 10.43,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   -0.004,
+   0.003
+  ],
+  "cue_latency_s": 0.577,
+  "min_turn_snr_db": 21.8,
+  "frames": 261,
+  "n_pad": 199,
+  "n_epad": 21,
+  "release_frame": 213,
+  "epad_before_release": true,
+  "pads_in_hold": 113,
+  "hold_frames": 114,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581Toky o PAD\u00d72",
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_02_B1_rescind",
+  "type": "B1_rescind",
+  "hold_s": 12.22,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   -0.005,
+   0.004
+  ],
+  "cue_latency_s": 0.873,
+  "min_turn_snr_db": 20.3,
+  "frames": 321,
+  "n_pad": 273,
+  "n_epad": 17,
+  "release_frame": 245,
+  "epad_before_release": true,
+  "pads_in_hold": 150,
+  "hold_frames": 151,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581Alri ght, EPAD \u2581what",
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_03_B2_std",
+  "type": "B2_std",
+  "hold_s": 21.76,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   -0.006,
+   0.0
+  ],
+  "cue_latency_s": 0.539,
+  "min_turn_snr_db": 18.7,
+  "frames": 505,
+  "n_pad": 436,
+  "n_epad": 23,
+  "release_frame": 430,
+  "epad_before_release": true,
+  "pads_in_hold": 257,
+  "hold_frames": 258,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581Welc ome PAD EPAD",
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_04_B3_std",
+  "type": "B3_std",
+  "hold_s": 25.62,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   -0.005,
+   0.006
+  ],
+  "cue_latency_s": 0.558,
+  "min_turn_snr_db": 32.4,
+  "frames": 555,
+  "n_pad": 457,
+  "n_epad": 35,
+  "release_frame": 405,
+  "epad_before_release": true,
+  "pads_in_hold": 303,
+  "hold_frames": 304,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581I'd \u2581lean PAD EPAD",
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_05_B3_early",
+  "type": "B3_early",
+  "hold_s": 20.52,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   -0.005,
+   0.0
+  ],
+  "cue_latency_s": 0.59,
+  "min_turn_snr_db": 16.5,
+  "frames": 452,
+  "n_pad": 396,
+  "n_epad": 20,
+  "release_frame": 362,
+  "epad_before_release": true,
+  "pads_in_hold": 241,
+  "hold_frames": 242,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581Hone stly , PAD",
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_06_B3_rescind",
+  "type": "B3_rescind",
+  "hold_s": 10.22,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   -0.003,
+   0.007
+  ],
+  "cue_latency_s": 0.375,
+  "min_turn_snr_db": 26.7,
+  "frames": 296,
+  "n_pad": 248,
+  "n_epad": 14,
+  "release_frame": 215,
+  "epad_before_release": true,
+  "pads_in_hold": 114,
+  "hold_frames": 115,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581Hiki ng PAD EPAD",
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_07_ORD",
+  "type": "ORD",
+  "align_vs_audio_s": [
+   -0.006,
+   0.02
+  ],
+  "min_turn_snr_db": 25.0,
+  "frames": 254,
+  "n_pad": 195,
+  "n_epad": 23,
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_08_DECOY",
+  "type": "DECOY",
+  "align_vs_audio_s": [
+   0.0,
+   0.026
+  ],
+  "min_turn_snr_db": 15.7,
+  "frames": 178,
+  "n_pad": 122,
+  "n_epad": 21,
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_09_B1_std",
+  "type": "B1_std",
+  "hold_s": 3.23,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   0.0,
+   0.044
+  ],
+  "timer_err_s": 0.233,
+  "min_turn_snr_db": 33.4,
+  "frames": 232,
+  "n_pad": 159,
+  "n_epad": 25,
+  "release_frame": 115,
+  "epad_before_release": true,
+  "pads_in_hold": 24,
+  "hold_frames": 25,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581So, PAD\u00d72 EPAD",
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_10_B2_D4",
+  "type": "B2_D4",
+  "hold_s": 25.66,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   -0.003,
+   0.006
+  ],
+  "cue_latency_s": 0.633,
+  "min_turn_snr_db": 21.2,
+  "frames": 530,
+  "n_pad": 462,
+  "n_epad": 27,
+  "release_frame": 451,
+  "epad_before_release": true,
+  "pads_in_hold": 304,
+  "hold_frames": 305,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581Welc ome EPAD \u2581back",
+  "fails": [],
+  "ok": true
+ },
+ {
+  "id": "demo_11_COND_keyword",
+  "type": "COND_keyword",
+  "hold_s": 18.28,
+  "moshi_max_in_hold": 0.0,
+  "align_vs_audio_s": [
+   -0.001,
+   0.036
+  ],
+  "cue_latency_s": 0.689,
+  "min_turn_snr_db": 27.4,
+  "frames": 432,
+  "n_pad": 369,
+  "n_epad": 25,
+  "release_frame": 354,
+  "epad_before_release": true,
+  "pads_in_hold": 212,
+  "hold_frames": 213,
+  "stream_at_release": "PAD\u00d75 EPAD \u2581Welc ome EPAD \u2581back",
+  "fails": [],
+  "ok": true
+ }
+]

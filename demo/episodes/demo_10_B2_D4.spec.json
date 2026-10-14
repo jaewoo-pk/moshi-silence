@@ -1,0 +1,140 @@
+{
+ "id": "demo_10_B2_D4",
+ "type": "B2_D4",
+ "split": "test_distract",
+ "pack": "b2_0002",
+ "voices": {
+  "moshi": "michael",
+  "user": "mary",
+  "friend": "charles"
+ },
+ "params": {
+  "friend_gain_db": -4.8,
+  "friend_rt60": 0.32,
+  "noise": "brown",
+  "snr_db": 26.0,
+  "ack": true,
+  "friend": "Maya",
+  "distractors": [
+   "D1c",
+   "D4"
+  ],
+  "release": {
+   "kind": "cue"
+  }
+ },
+ "templates": {
+  "arrival": "train:0",
+  "instr": "train:17",
+  "cue": "train:4"
+ },
+ "turns": [
+  {
+   "spk": "moshi",
+   "text": "How's the new job treating you?",
+   "role": "topic",
+   "at": [
+    "start",
+    0.6
+   ]
+  },
+  {
+   "spk": "user",
+   "text": "It's good, but the commute is long.",
+   "role": null,
+   "gap": 0.2778794768761536
+  },
+  {
+   "spk": "moshi",
+   "text": "How long does it take you to get there?",
+   "role": "topic",
+   "gap": 0.32370545387271843
+  },
+  {
+   "spk": "friend",
+   "text": "Hey, do you have a sec?",
+   "gap": 0.2858540696031249
+  },
+  {
+   "spk": "user",
+   "text": "Give me a moment with Maya. Don't interrupt until I tell you I'm back.",
+   "gap": 0.18596308683681936,
+   "anchor": "instr"
+  },
+  {
+   "spk": "moshi",
+   "text": "Okay, I'll wait.",
+   "gap": 0.36036482298792416,
+   "role": "ack"
+  },
+  {
+   "spk": "friend",
+   "text": "Did you take my umbrella this morning?",
+   "gap": 0.6489716882160192
+  },
+  {
+   "spk": "friend",
+   "text": "What's the capital of Australia again?",
+   "gap": 0.40235083828829016,
+   "event": "D1c"
+  },
+  {
+   "spk": "user",
+   "text": "Oh no, sorry, I did. It's by the door.",
+   "gap": 0.37837410582439146
+  },
+  {
+   "spk": "friend",
+   "text": "Okay, I need it for later.",
+   "gap": 0.6081821882423558
+  },
+  {
+   "spk": "user",
+   "text": "Yeah, of course. It's yours.",
+   "gap": 0.1864894854779048
+  },
+  {
+   "spk": "friend",
+   "text": "Hold on, let me grab something.",
+   "gap": -0.061318237616065974
+  },
+  {
+   "spk": "friend",
+   "text": "Okay, I'm back!",
+   "gap": 0.3036218745587998,
+   "event": "D4",
+   "stall": [
+    "D4_gap",
+    4.55
+   ]
+  },
+  {
+   "spk": "friend",
+   "text": "Thanks. Also, the landlord called.",
+   "gap": 0.3754219887351125
+  },
+  {
+   "spk": "user",
+   "text": "About the heater? I'll call him back tonight.",
+   "gap": 0.5701997599756105
+  },
+  {
+   "spk": "user",
+   "text": "I'm back, sorry about that.",
+   "gap": 0.2387971240367259,
+   "anchor": "cue"
+  },
+  {
+   "spk": "moshi",
+   "text": "Welcome back! You were telling me about your commute. How long is it?",
+   "gap": 0.6334075970229364,
+   "role": "release",
+   "release": true
+  },
+  {
+   "spk": "user",
+   "text": "About an hour each way.",
+   "gap": 0.6265322947540902
+  }
+ ]
+}

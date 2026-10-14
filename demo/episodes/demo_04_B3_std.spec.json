@@ -1,0 +1,110 @@
+{
+ "id": "demo_04_B3_std",
+ "type": "B3_std",
+ "split": "train",
+ "pack": "b3_0001",
+ "voices": {
+  "moshi": "michael",
+  "user": "mary",
+  "friend": "anna"
+ },
+ "params": {
+  "friend_gain_db": -5.9,
+  "friend_rt60": 0.38,
+  "noise": "brown",
+  "snr_db": 32.6,
+  "ack": true,
+  "k": 3,
+  "n_presented": 3,
+  "distractors": [
+   "D2b"
+  ],
+  "release": {
+   "kind": "cue"
+  }
+ },
+ "templates": {
+  "instr": "train:6",
+  "cue": "train:10"
+ },
+ "turns": [
+  {
+   "spk": "moshi",
+   "text": "So, what are you trying to decide?",
+   "at": [
+    "start",
+    0.6
+   ],
+   "role": "topic"
+  },
+  {
+   "spk": "user",
+   "text": "I'm picking a laptop for school.",
+   "gap": 0.5807790847017924
+  },
+  {
+   "spk": "user",
+   "text": "Let me get through all three before you say anything.",
+   "gap": 0.39055851324215707,
+   "anchor": "instr"
+  },
+  {
+   "spk": "moshi",
+   "text": "Sure, I'm listening.",
+   "gap": 0.301856766846519,
+   "role": "ack"
+  },
+  {
+   "spk": "user",
+   "text": "The first one is a MacBook Air.",
+   "gap": 1.2150744492445404
+  },
+  {
+   "spk": "user",
+   "text": "It's light and the battery lasts forever, but it's pricey.",
+   "gap": 0.5270087397878165
+  },
+  {
+   "spk": "user",
+   "text": "The second option is a ThinkPad.",
+   "gap": 1.9292056711209395,
+   "stall": [
+    "D2b",
+    3.84
+   ]
+  },
+  {
+   "spk": "user",
+   "text": "The keyboard is great and it's cheaper, but it's heavier.",
+   "gap": 0.33718684919744757
+  },
+  {
+   "spk": "user",
+   "text": "And the third one, a Chromebook.",
+   "gap": 1.6879793625243493
+  },
+  {
+   "spk": "user",
+   "text": "It's super cheap, but I'm not sure it can run what I need.",
+   "gap": 0.4511386115530294
+  },
+  {
+   "spk": "user",
+   "text": "That's it, all three. Which one?",
+   "gap": 0.46475036106938816,
+   "anchor": "cue"
+  },
+  {
+   "spk": "moshi",
+   "text": "I'd lean toward the MacBook Air for the battery life, though the ThinkPad is a solid value pick, and the Chromebook only makes sense if everything you use runs in a browser.",
+   "gap": 0.5577119496329646,
+   "role": "release",
+   "release": true
+  },
+  {
+   "spk": "user",
+   "text": "Yeah, battery life matters most to me.",
+   "gap": 0.5731907879503646
+  }
+ ]
+}

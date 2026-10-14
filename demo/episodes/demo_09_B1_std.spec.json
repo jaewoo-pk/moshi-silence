@@ -1,0 +1,71 @@
+{
+ "id": "demo_09_B1_std",
+ "type": "B1_std",
+ "split": "test_voice",
+ "pack": "b1_0002",
+ "voices": {
+  "moshi": "michael",
+  "user": "george",
+  "friend": "peter_yearsley"
+ },
+ "params": {
+  "friend_gain_db": -6.9,
+  "friend_rt60": 0.3,
+  "noise": "brown",
+  "snr_db": 33.6,
+  "ack": true,
+  "N": 3,
+  "N_text": "three seconds",
+  "release": {
+   "kind": "timer",
+   "N": 3
+  }
+ },
+ "templates": {
+  "instr": "train:8"
+ },
+ "turns": [
+  {
+   "spk": "moshi",
+   "text": "If you could live in any city in the world, which one would you pick?",
+   "at": [
+    "start",
+    0.6
+   ],
+   "role": "topic"
+  },
+  {
+   "spk": "user",
+   "text": "Give me three seconds, then hit me with the question again.",
+   "gap": 0.4045853906645213,
+   "anchor": "instr"
+  },
+  {
+   "spk": "moshi",
+   "text": "Sure.",
+   "gap": 0.691471709528213,
+   "role": "ack"
+  },
+  {
+   "spk": "moshi",
+   "text": "So, which city would you pick?",
+   "at": [
+    "instr_end",
+    3.2332398117364125
+   ],
+   "role": "release",
+   "release": true
+  },
+  {
+   "spk": "user",
+   "text": "Probably Tokyo. The food and the trains are amazing.",
+   "gap": 0.43108470903843665
+  },
+  {
+   "spk": "moshi",
+   "text": "Tokyo is a great choice. The food alone would be worth it.",
+   "gap": 0.8007909997599818,
+   "role": "response"
+  }
+ ]
+}

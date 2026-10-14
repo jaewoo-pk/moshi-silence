@@ -1,0 +1,75 @@
+{
+ "id": "demo_00_B1_std",
+ "type": "B1_std",
+ "split": "train",
+ "pack": "b1_0001",
+ "voices": {
+  "moshi": "michael",
+  "user": "bill_boerst",
+  "friend": "fantine"
+ },
+ "params": {
+  "friend_gain_db": -6.2,
+  "friend_rt60": 0.52,
+  "noise": "brown",
+  "snr_db": 18.8,
+  "ack": false,
+  "N": 20,
+  "N_text": "twenty seconds",
+  "release": {
+   "kind": "timer",
+   "N": 20
+  }
+ },
+ "templates": {
+  "instr": "train:3"
+ },
+ "turns": [
+  {
+   "spk": "moshi",
+   "text": "Okay, quick one. What's seventeen times six?",
+   "at": [
+    "start",
+    0.6
+   ],
+   "role": "topic"
+  },
+  {
+   "spk": "user",
+   "text": "Wait, I need twenty seconds. Ask me again after that.",
+   "gap": 0.3083635616533392,
+   "anchor": "instr"
+  },
+  {
+   "spk": "user",
+   "text": "Let me see.",
+   "at": [
+    "instr_end",
+    11.893135249856554
+   ],
+   "gain_db": -6,
+   "event": "D2c"
+  },
+  {
+   "spk": "moshi",
+   "text": "Alright, what's seventeen times six?",
+   "at": [
+    "instr_end",
+    19.83621301209251
+   ],
+   "role": "release",
+   "release": true
+  },
+  {
+   "spk": "user",
+   "text": "A hundred and two.",
+   "gap": 0.2785758833527278
+  },
+  {
+   "spk": "moshi",
+   "text": "Yep, that's right. Nice work.",
+   "gap": 0.3088203998395016,
+   "role": "response"
+  }
+ ]
+}

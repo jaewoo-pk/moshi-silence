@@ -1,0 +1,71 @@
+{
+ "id": "demo_02_B1_rescind",
+ "type": "B1_rescind",
+ "split": "train",
+ "pack": "b1_0001",
+ "voices": {
+  "moshi": "michael",
+  "user": "eponine",
+  "friend": "bill_boerst"
+ },
+ "params": {
+  "friend_gain_db": -5.5,
+  "friend_rt60": 0.25,
+  "noise": "brown",
+  "snr_db": 20.2,
+  "ack": false,
+  "N": 20,
+  "N_text": "twenty seconds",
+  "release": {
+   "kind": "cue"
+  }
+ },
+ "templates": {
+  "instr": "train:10",
+  "rescind": "train:2"
+ },
+ "turns": [
+  {
+   "spk": "moshi",
+   "text": "Okay, quick one. What's seventeen times six?",
+   "at": [
+    "start",
+    0.6
+   ],
+   "role": "topic"
+  },
+  {
+   "spk": "user",
+   "text": "Hang on, twenty seconds. Then ask me one more time.",
+   "gap": 0.7449816274314072,
+   "anchor": "instr"
+  },
+  {
+   "spk": "user",
+   "text": "Actually, go ahead and ask me now.",
+   "at": [
+    "instr_end",
+    9.417710133226393
+   ],
+   "anchor": "cue"
+  },
+  {
+   "spk": "moshi",
+   "text": "Alright, what's seventeen times six?",
+   "gap": 0.8729670868655937,
+   "role": "release",
+   "release": true
+  },
+  {
+   "spk": "user",
+   "text": "A hundred and two.",
+   "gap": 0.5760653690167274
+  },
+  {
+   "spk": "moshi",
+   "text": "Yep, that's right. Nice work.",
+   "gap": 0.4232948980761952,
+   "role": "response"
+  }
+ ]
+}
