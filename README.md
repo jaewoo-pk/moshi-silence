@@ -13,7 +13,7 @@ decisions and status.
 | Packs | 2,500 LLM content packs (`packs/packs.jsonl`); 348 screened test packs |
 | Train | `data/train`: 1,150 episodes / 10.49 h, all pass checks. `train_1h.jsonl` = 113 episodes / 1.01 h, `train_10h.jsonl` = 1,101 / 10.01 h (1 h ⊂ 10 h) |
 | Dev | `data/dev`: 200 episodes / 1.97 h, `dev_80` ⊂ `dev_200`, balanced per family, no pack or script overlap with train |
-| Test | 7 suites × 90 episodes (`data/test_*`), each holding out one axis |
+| Test | `data/test_*`: 7 suites × 90 = 630 episodes / 6.1 h, all pass checks, no script overlap with train |
 | Training | Configs + GPU bootstrap ready, not yet run. Eval harness not written. |
 
 ## Episodes

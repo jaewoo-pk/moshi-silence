@@ -43,7 +43,7 @@ or self-generated data. The brief, condensed:
 | Content packs | Done: 2,500 (`packs/packs.jsonl`), 348 screened test packs |
 | Train set `data/train` | Done: 1,150 episodes / 10.49 h, all pass check.py; `train_1h` = 113 eps, `train_10h` = 1,101 eps |
 | Dev set `data/dev` | Done: 200 episodes / 1.97 h (`dev_80` ⊂ `dev_200`), all pass, no overlap with train |
-| Test suites `data/test_*` | Building (`data/build_test.log`), 90 each from screened packs |
+| Test suites `data/test_*` | Done: 7 × 90 = 630 episodes / 6.1 h, all pass check.py, no script overlap with train |
 | moshi-finetune patches | 3 patches, tested to stack on upstream main `2acc879f` |
 | Training configs + GPU bootstrap | Written, verified locally (YAML parses, patches stack); **not yet run on a GPU** |
 | Eval harness (`LMGen` driver) | **Not written.** Eval details still to be discussed with the user. |
@@ -70,9 +70,7 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
 
 ## Next steps, in order
 
-1. **When the test suites finish:** `python -m silence.check data/test_<suite> --finetune
-   ../moshi-finetune` for each, then `python -m silence.check_overlap data/train data/dev
-   data/test_*`. Record the results here.
+1. ~~Build and check the test suites~~ (done, see "Test suites").
 2. **Get one complete tree** (see Git above), then rent the GPU. That's the user's call:
    on-demand, not spot, since `train.py` can't resume. Plan an H100 80 GB with ≥ 100 GB disk.
 3. **On the box:** `bash scripts/gpu_bootstrap.sh`. Note the measured s/step and peak memory
@@ -209,7 +207,25 @@ for s in test_script test_word test_voice test_distract test_cond test_ordinary 
 - test_word holds out the **user's** wording. Moshi's acks ("Sure.", "Okay, I'll wait.") come
   from a shared list, and a couple of B3 option lines coincide ("The first one is taking the
   train."). That's expected.
-- Results so far (check.py / check_overlap): *filled in when the build finishes*.
+- **Built and checked (2026-10-14, ~6 pm):** all 630 episodes pass check.py.
+
+| Suite | Hours | Disk | Test packs | Closest train script (Jaccard) | Phrase-bank lines shared with train | Pack lines shared |
+|---|---|---|---|---|---|---|
+| test_script | 0.80 | 266 MB | 92 | 0.44 | 144 (82 distinct) | 0 |
+| test_word | 0.82 | 271 MB | 92 | 0.43 | 43 (11; Moshi acks + 2 B3 option lines) | 0 |
+| test_voice | 0.83 | 275 MB | 93 | 0.43 | 172 (94) | 1 ("Sure.") |
+| test_distract | 1.15 | 382 MB | 89 | 0.43 | 262 (91) | 1 (D4 friend "Okay, I'm back.", by design) |
+| test_cond | 1.14 | 378 MB | 90 | 0.43 | 60 (8) | 0 |
+| test_ordinary | 0.54 | 179 MB | 90 | 0.43 | 0 | 0 |
+| test_all | 0.82 | 271 MB | 95 | 0.43 | 40 (12) | 1 ("Take your time.") |
+
+  0 shared packs or episodes with train in every suite. test_voice and test_all use only the
+  4 test voices; the others use train voices. `data/` totals 6.2 GB (train 3.6, dev 0.65,
+  tests 2.0).
+- Pocket TTS logged "Maximum generation length reached without EOS" twice (test_script,
+  test_distract). A duration scan of all 14,581 distinct clips used in train/dev/test found
+  no run-on clip: median 0.35 s/word, p99 0.70, max 1.76 (one-word acks, raw clips before
+  gating).
 
 ### Human test set (not started)
 
