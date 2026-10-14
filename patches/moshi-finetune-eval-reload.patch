@@ -1,0 +1,34 @@
+--- a/train.py
++++ b/train.py
+@@ -180,8 +180,10 @@
+         is_eval=False,
+     )
+ 
+-    if args.do_eval:
+-        eval_data_loader = build_data_loader(
++    # The eval loader is a finite generator: build a fresh one for every evaluation, or
++    # every evaluation after the first iterates zero batches and logs NaN.
++    def make_eval_loader():
++        return build_data_loader(
+             instruct_tokenizer=interleaved_tokenizer,
+             args=args.data,
+             batch_size=args.batch_size,
+@@ -328,7 +330,7 @@
+             (args.eval_freq > 0 and state.step % args.eval_freq == 0) or is_last_step
+         ):
+             # write perplexity to state
+-            evaluate(model, eval_data_loader, state, args)
++            evaluate(model, make_eval_loader(), state, args)
+ 
+             eval_logs = get_eval_logs(
+                 state.step,
+--- a/finetune/data/data_loader.py
++++ b/finetune/data/data_loader.py
+@@ -37,3 +37,7 @@
+         if len(sample_list) == batch_size:
+             yield Batch.collate(sample_list)
+             sample_list = []
++
++    # Eval data is finite: keep the last partial batch so every eval episode is scored.
++    if is_eval and sample_list:
++        yield Batch.collate(sample_list)

@@ -160,13 +160,24 @@ recorded anywhere; ask the user whether it happened.
 1. ~~Check the train build, then `make_splits`~~ (done, 1,150/1,150 pass). Still worth doing:
    read 3–5 episodes with `silence.transcript` and listen to a couple. On the GPU box, rerun
    `make_splits.py data/train --hours 1 10 --abs` so the jsonl files hold absolute paths.
-2. **Build the 7 test suites** (`--n 90` each, ~630 episodes, so roughly 25–40 min of TTS
-   at the measured throughput).
+2. **Build the 7 test suites** (in progress; `--n 90` each, from
+   `packs/packs_test_screened.jsonl`, log at `data/build_test.log`). `silence/screen_packs.py`
+   dropped 39 of 387 test packs that contain a line spoken in train/dev or are near-duplicates
+   (Jaccard ≥ 0.5) of a train/dev pack, leaving B1 81, B2 60, B3 51, ORD 79, DECOY 77.
+   Unlike the dev screen, this one compares against lines actually spoken in train/dev
+   episodes. Raw pack strings over-count: e.g. `friend_away` "Okay, I'm back" lines are only
+   spoken in test-only D4 episodes. `test_distract` / `test_cond` need ~63 B2 packs, so
+   about 3 B2 scripts repeat within those suites. Run `silence.check_overlap` per suite
+   afterwards.
 3. ~~Build the dev set~~ (done: `data/dev`, 200 episodes, see above).
-4. **Training configs:** a small generator that reads the 1 h episode count `n` from
-   `ledger.json` and writes one yaml per run (see "Run matrix"), plus a GPU-box bootstrap
-   (clone moshi-finetune, apply `patches/moshi-finetune-audio-mask.patch`, pin and download
-   the Moshi revision, 5-step smoke train).
+4. ~~Training configs + GPU bootstrap~~ (written, untested on a GPU):
+   - `silence/make_configs.py` writes one yaml per run plus a checkpoint → epoch map. Phase 1
+     is 113 episodes × 20 epochs = 142 steps, a checkpoint and dev loss every 7 steps
+     (≈ 0.99 epoch), 21 checkpoints per run.
+   - `scripts/gpu_bootstrap.sh` clones moshi-finetune at `2acc879f`, applies both patches,
+     downloads the pinned weights, makes jsonl paths absolute, writes the configs, and runs
+     a 6-step smoke train that must show 2 checkpoints and no NaN.
+   - Upload ~4.3 GB of data (train 3.6 GB, dev 0.65 GB) plus the test suites.
 5. **Eval harness**, then R0 → R1–R5 → choose E and the top 2 LRs → R6–R7, then the listening
    log and the report. Eval details are still to be discussed with the user.
 
@@ -199,6 +210,10 @@ silence/build.py           CLI: specs -> TTS -> episodes + manifest.jsonl + epis
 silence/check.py           checks via moshi-finetune's own Interleaver; plots; index.html
 silence/build_dev.py       dev set: unused + overlap-screened train packs, balanced, nested dev_80 ⊂ dev_200
 silence/check_overlap.py   train vs held-out overlap audit (packs, near-dup scripts, shared lines, voices)
+silence/screen_packs.py    held-out pack file minus packs overlapping train/dev (for the test suites)
+silence/make_configs.py    moshi-finetune yamls per run (fixed epochs) + checkpoint→epoch maps
+scripts/gpu_bootstrap.sh   GPU box: moshi-finetune + patches, pinned weights, configs, smoke train
+patches/moshi-finetune-eval-reload.patch   fresh eval loader per evaluation (upstream NaN bug)
 silence/make_splits.py     nested 1h ⊂ 10h ⊂ 100h jsonl subsets + ledger.json + exposure math
 silence/gen_packs.py       LLM content packs via Anthropic API (reads .env); schema + speakability filters
 silence/transcript.py      print built episodes as timed transcripts
@@ -275,6 +290,26 @@ English voices. Only 4 unseen voices is a known limitation; say so in the report
 - Built-in eval (`do_eval`, `eval_data`, `eval_freq`): forward passes on up to 40 batches,
   logging text loss and audio loss separately (`finetune/eval.py`). The audio-mask patch
   covers it.
+
+- **Training epochs are real epochs.** `get_dataset_iterator` reshuffles each pass without
+  replacement (`sphn` `shuffle(with_replacement=False)`), so epoch = steps × batch / n holds.
+- **Eval-loader bug (upstream main):** `train.py` builds the eval loader once, but for eval
+  data it's a finite generator. The first evaluation exhausts it, and every later evaluation
+  iterates zero batches and logs NaN. It also drops the last partial batch (200 dev episodes
+  at batch 16 would score only 192). Fixed by `patches/moshi-finetune-eval-reload.patch`:
+  a fresh loader per evaluation, plus the partial batch kept. The partial batch counts as one
+  batch in the average, a slight overweight. Upstream has a `fix_eval` branch that may
+  address the same bug; not checked.
+- **`num_ckpt_keep` defaults to 3** and deletes older checkpoints. Our configs set
+  `num_ckpt_keep: null` to keep every per-epoch checkpoint.
+- **No revision argument:** `train.py` calls `CheckpointInfo.from_hf_repo` without a
+  revision. To pin the model, download a snapshot at a fixed revision
+  (`2bfc9ae6e89079a5cc7ed2a68436010d91a3d289`, current on 2026-10-14) and point
+  `moshi_path` / `mimi_path` / `tokenizer_path` at the files (`model.safetensors`,
+  `tokenizer-e351c8d8-checkpoint125.safetensors`, `tokenizer_spm_32k_3.model`).
+- **Patches:** both apply in order (audio-mask, then eval-reload) to clean upstream main
+  `2acc879f`, and the result matches the local `../moshi-finetune` (branch
+  `silence-audio-mask`) file for file.
 
 ## Run matrix (agreed 2026-10-14, ~5 pm; supersedes the fixed-steps plan)
 

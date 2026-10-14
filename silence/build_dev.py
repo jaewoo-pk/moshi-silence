@@ -75,16 +75,30 @@ def _norm(s):
     return " ".join("".join(ch for ch in s.lower() if ch.isalnum() or ch.isspace()).split())
 
 
-def screen(candidates, train_packs, thresh):
-    """Drop candidate packs that overlap the training packs: any spoken line shared verbatim
-    (after case / punctuation normalization), or key-text content-word Jaccard >= thresh
-    against any training pack of the same family (gen_packs' own near-dup measure)."""
+def spoken_lines(data_dir):
+    """Every line actually spoken in a built set (from the episode specs), normalized."""
+    d = Path(data_dir)
+    ids = [json.loads(l)["id"] for l in (d / "episodes.jsonl").read_text().splitlines()]
+    return {_norm(t["text"]) for i in ids
+            for t in json.loads((d / "episodes" / f"{i}.spec.json").read_text())["turns"]}
+
+
+def screen(candidates, train_packs, thresh, ref_lines=None):
+    """Drop candidate packs that overlap the training packs: a line shared verbatim (after
+    case / punctuation normalization), or key-text content-word Jaccard >= thresh against
+    any training pack of the same family (gen_packs' own near-dup measure).
+    ref_lines: lines to compare against. Default: every string in the training packs,
+    including fields never spoken in training (strictest; what the dev set used).
+    Pass spoken_lines(...) to compare only against lines actually heard in training."""
     from silence.gen_packs import content_words, key_text
     fam = lambda p: "DECOY" if p.get("decoy") else p["family"]
     tr_lines, tr_words = set(), defaultdict(list)
     for p in train_packs:
-        tr_lines |= {_norm(s) for s in pack_strings(p)}
+        if ref_lines is None:
+            tr_lines |= {_norm(s) for s in pack_strings(p)}
         tr_words[fam(p)].append(content_words(key_text(fam(p), p)))
+    if ref_lines is not None:
+        tr_lines = set(ref_lines)
     keep, dropped = {}, Counter()
     for k, p in candidates.items():
         if p.get("split", "train") != "train":
