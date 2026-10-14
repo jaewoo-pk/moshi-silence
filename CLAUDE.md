@@ -94,6 +94,31 @@ pass check.py**.
   `--n 1150`). The manifest was restored to 1,150 afterwards. **Only one session at a time
   should write to `data/`.**
 
+**Dev set: built and checked.** `data/dev` has 200 episodes (1.97 h), and all 200 pass
+check.py. Built by `silence/build_dev.py`; the log is `data/build_dev.log`.
+- `dev_80.jsonl` (0.77 h) is the first 80 of `dev_200.jsonl`. Both are exactly balanced:
+  20 / 50 per family (B1, B2, B3, ORD+DECOY), with each family split by its TRAIN_MIX
+  sub-mix, and families round-robin so every prefix of 4k has k per family.
+- Train distribution (train voices, phrasings, conditions), so it measures "learned the
+  behavior on new scripts", not generalization. Episodes are ≤ 60 s.
+- **No overlap with train** (the user's requirement). Dev packs exclude every pack used
+  anywhere in `data/train` (all 1,150 episodes, incl. B1 `pack2`). An overlap screen also
+  drops any candidate pack that shares a spoken line verbatim with a training pack, or whose
+  key-text content-word Jaccard against a same-family training pack is ≥ 0.5. That screen
+  dropped 200 of 928 candidates, mostly B2/B3 packs sharing a short line.
+- `python -m silence.check_overlap data/train data/dev` reports:
+  - 0 shared packs, 0 shared episodes
+  - closest script Jaccard 0.47 (median 0.22); same-topic pairs remain, e.g. two different
+    "car squeals on cold mornings" ORD packs
+  - 1 pack line shared (the one-word ack "Okay.")
+  - 407 shared phrase-bank line instances (137 distinct): instructions, cues, acks. These
+    are shared by design; held-out wording is what `test_word` is for.
+- **Use:** validation loss on all 200 every epoch. Generation eval on `dev_80` in phase 1 and
+  on all 200 in phase 2 and the final checkpoint choice. Never trained on, never reported as
+  the result.
+- **TODO:** `build.py train` doesn't know about dev yet. Any future train build (e.g. 100 h)
+  must skip dev packs (`meta.pack` / `pack2` in `data/dev`), or dev stops being held out.
+
 **moshi-finetune patch: `patches/moshi-finetune-audio-mask.patch`.** It adds
 `mask_main_speech_audio` (plus `main_speech_mask_pre_sec` 0.08 / `main_speech_mask_post_sec`
 0.24). The audio loss is skipped on frames where Moshi speaks, padded by those margins. Text
@@ -124,7 +149,6 @@ recorded anywhere; ask the user whether it happened.
 **Not started:**
 - the 7 test suites (`--n 90` each); build after the train set finishes
 - `make_splits.py` on the 10 h build (1 h / 10 h jsonl files + ledger)
-- the dev set for per-epoch evaluation (see "Run matrix"): 200 episodes from unused train packs, first 80 for phase 1, all 200 for phase 2 and final selection (proposed; waiting on the user)
 - the training-config generator (yamls from `ledger.json`) and the GPU-box bootstrap
 - the eval harness (`LMGen` driver)
 - the human-recorded test set
@@ -138,9 +162,7 @@ recorded anywhere; ask the user whether it happened.
    `make_splits.py data/train --hours 1 10 --abs` so the jsonl files hold absolute paths.
 2. **Build the 7 test suites** (`--n 90` each, ~630 episodes, so roughly 25–40 min of TTS
    at the measured throughput).
-3. **Build the dev set** (~100 train-distribution episodes, held out from training and from
-   reporting). Packs should not overlap the 10 h build. Check whether `build.py` can skip
-   used packs or needs a flag.
+3. ~~Build the dev set~~ (done: `data/dev`, 200 episodes, see above).
 4. **Training configs:** a small generator that reads the 1 h episode count `n` from
    `ledger.json` and writes one yaml per run (see "Run matrix"), plus a GPU-box bootstrap
    (clone moshi-finetune, apply `patches/moshi-finetune-audio-mask.patch`, pin and download
@@ -175,6 +197,8 @@ silence/tts.py             TTS backends (pocket | kyutai | espeak) + ClipCache
 silence/assemble.py        timeline -> stereo wav + {alignments, events, meta} json
 silence/build.py           CLI: specs -> TTS -> episodes + manifest.jsonl + episodes.jsonl
 silence/check.py           checks via moshi-finetune's own Interleaver; plots; index.html
+silence/build_dev.py       dev set: unused + overlap-screened train packs, balanced, nested dev_80 ⊂ dev_200
+silence/check_overlap.py   train vs held-out overlap audit (packs, near-dup scripts, shared lines, voices)
 silence/make_splits.py     nested 1h ⊂ 10h ⊂ 100h jsonl subsets + ledger.json + exposure math
 silence/gen_packs.py       LLM content packs via Anthropic API (reads .env); schema + speakability filters
 silence/transcript.py      print built episodes as timed transcripts

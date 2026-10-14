@@ -18,6 +18,8 @@ silence/tts.py             TTS backends (pocket | kyutai | espeak) with word tim
 silence/assemble.py        timeline -> stereo wav + {alignments, events, meta} json
 silence/build.py           CLI: specs -> TTS -> episodes + manifest
 silence/check.py           checks via moshi-finetune's own Interleaver, plots, index.html
+silence/build_dev.py       dev set (train distribution, unseen and overlap-screened packs)
+silence/check_overlap.py   train vs held-out overlap audit
 silence/make_splits.py     nested 1h/10h/100h subsets + data ledger + exposure math
 silence/gen_packs.py       LLM content packs (Anthropic API) + schema / speakability filters
 silence/transcript.py      print built episodes as timed transcripts
@@ -66,7 +68,9 @@ training, 4 held out for test, `michael` fixed for Moshi (see `silence/voices.py
 - Train set: `data/train`, 1,150 episodes (10.49 h), all pass `check.py`;
   `train_1h.jsonl` = 113 episodes, `train_10h.jsonl` = 1,101 episodes (first-K prefixes).
   Pocket TTS runs at ~12× realtime with 4 workers on an Apple Silicon CPU (~40 min for 10 h).
-- Not yet: test suites, dev set, training configs, eval harness, human test set, runs.
+- Dev set: `data/dev`, 200 episodes (1.97 h), `dev_80.jsonl` ⊂ `dev_200.jsonl`, balanced
+  per family, with no pack or script overlap with train (`silence.check_overlap`).
+- Not yet: test suites, training configs, eval harness, human test set, runs.
 
 ## Full data
 
@@ -77,6 +81,8 @@ for s in test_script test_word test_voice test_distract test_cond test_ordinary 
   python -m silence.build $s --packs packs/packs.jsonl --n 90 --out data/$s; done
 python -m silence.make_splits data/train --hours 1 10 --abs
 python -m silence.check data/train --finetune ../moshi-finetune
+python -m silence.build_dev --exclude data/train --out data/dev          # 200 dev episodes
+python -m silence.check_overlap data/train data/dev
 python -m silence.transcript data/train/episodes/tr_000000.json     # read an episode
 ```
 
