@@ -34,7 +34,7 @@ or self-generated data. The brief, condensed:
    Optional if time allows: a "talk about trees more often" experiment as a second, simpler
    test of how fast fine-tuning changes behavior.
 
-## Current status (as of 2026-10-14, ~2 pm ET)
+## Current status (as of 2026-10-14, ~5 pm ET)
 
 **Environment on this Mac: set up, nothing to install.**
 - `.venv/` (uv, Python 3.12) with torch 2.9.1, moshi 0.2.13, pocket-tts-timestamped 1.2.0,
@@ -47,25 +47,48 @@ or self-generated data. The brief, condensed:
   `kyutai/pocket-tts-without-voice-cloning`; PocketTTS loads it from disk, so no HF access
   is needed at run time.
 - `.env`: `ANTHROPIC_API_KEY` (gitignored). Never print or log it.
-- `cache/tts/pocket/`: 108 rendered clips (wav + word-timestamp json), keyed by
-  sha1(backend|voice|text). Rebuilds reuse them.
+- `cache/tts/pocket/`: rendered clips (wav + word-timestamp json), keyed by
+  sha1(backend|voice|text); ~5.2k at 5 pm and growing with the 10 h build. Rebuilds reuse them.
 - **Not on this Mac:** Moshi model weights (`kyutai/moshiko-pytorch-bf16`, ~15 GB). The
   trainer and eval download them into the HF cache on the GPU box. Training a 7B bf16 model
   isn't feasible here.
-- **Not a git repo yet.** `git init` and commit before making changes (`.gitignore` already
-  excludes .env, .venv, models, cache, data, and demo wavs).
+- **Git:** local repo on `master`, no remote. Two commits (initial generator, demo refresh).
+  As of 5 pm a lot of work is uncommitted (most of `silence/`, `silence/transcript.py`,
+  `patches/`, the rebuilt `demo/`). Commit it before branching off for new work.
 
 **Generator: working.**
-- The Pocket TTS demo (12 episodes, one per type) builds, and **12/12 pass check.py**
-  through moshi-finetune's own Interleaver. That was verified on the cached clips after the
-  fix below.
-- `demo/` on disk is still from the run *before* the fix (`checks.json` shows 5/12).
-  Rerun the two demo commands below to refresh it. It takes seconds and doesn't re-run TTS.
-- Demo numbers after the fix:
-  - B1 re-ask error vs instr_end + N: −0.16 / +0.23 s (jitter is ±0.25 s by design)
-  - cue → Moshi resume: 0.38–0.87 s
-  - Moshi word starts vs its audio onset: within ±0.05 s
+- The Pocket TTS demo is now 14 episodes (one per type, plus B1 double hold, COND phone call,
+  and minute-scale B1), and **14/14 pass check.py** through moshi-finetune's own Interleaver.
+  - B1 re-ask error vs instr_end + N: −0.09 to +0.14 s (jitter is ±0.25 s by design)
+  - Moshi word starts vs its audio onset: within ±0.04 s
   - holds: all PAD, with EPAD on the frame right before the release
+- `python -m silence.transcript <episode.json>` prints an episode as a timed transcript
+  (who says what when, holds, distractor tags), which is handy for reading episodes
+  without listening.
+
+**Content packs: done.** `packs/packs.jsonl` has 2,500 packs (500 per family: B1, B2, B3,
+ORD, DECOY; `--test-frac 0.15` reserves test-only packs). The smoke test (`packs/smoke.jsonl`,
+40 packs) came first. The full run took 322 API calls (~0.69M input / ~0.81M output tokens)
+and rejected 620 candidates (written to `packs/rejects.jsonl` with the reason). The biggest
+reasons were schema checks (no D3a: 206; D3a on the last line: 40; decoy word missing: 26;
+unanswered question: 16), too long for a 60 s episode (B3: 106, B2: 99), and near-duplicates
+(93). Only a handful failed the speakability filter. We used 500 per family, not 1500; that
+covers 10 h (1,000 episodes) with no pack reuse. 100 h would reuse packs ~5×, so top up first
+(rerunning with the same `--out` tops each family up to `--per-family`).
+
+**10 h train build: running** (started 4:34 pm, `build train --n 1000 --out data/train`,
+log at `data/build_train.log`). It's 7,661 TTS clips (~7.8 h of speech). Pocket TTS runs at
+**~11.9× realtime with 4 workers** on this Mac, about twice the earlier 6× estimate, so TTS
+should finish around 5:15 pm, with episode assembly after that. One "Maximum generation
+length reached without EOS" warning so far; check.py should catch it if it yields a bad clip.
+
+**moshi-finetune patch: `patches/moshi-finetune-audio-mask.patch`.** It adds
+`mask_main_speech_audio` (plus `main_speech_mask_pre_sec` 0.08 / `main_speech_mask_post_sec`
+0.24). The audio loss is skipped on frames where Moshi speaks, padded by those margins. Text
+loss is unchanged, and the audio loss still applies wherever Moshi is silent. That way the
+synthetic `michael` TTS voice can't pull Moshi's voice. It touches `args.py`,
+`data/interleaver.py`, `eval.py`, `train.py`, so validation loss is masked the same way.
+Apply it on the GPU box's moshi-finetune checkout. **It's on for every run.**
 
 **Fixed during the demo; keep both fixes if you touch tts.py / assemble.py:**
 - Pocket TTS's attention timestamps put the first word at ~0 s whenever a clip opens with
@@ -77,12 +100,20 @@ or self-generated data. The brief, condensed:
   `assemble.gate()` zeroes every clip outside [onset − 50 ms, offset + 100 ms] with 10 ms
   fades. check.py skips the same margins when testing hold silence, and its `align=` column
   checks word times against audio onset (fails beyond ±0.15 s).
+- (2026-10-14) ~5% of Pocket clips open with up to 1 s of breath/noise poking above −30 dB,
+  which `speech_span()` took for the onset (Moshi text up to 0.9 s ahead of its audio).
+  The onset now has to be followed by real speech (a frame > −15 dB within 150 ms, or a
+  dense 100 ms reaching −23 dB). Checked on all 281 cached clips: 15 move, 14 clearly noise.
+
+**Done since the 2 pm handoff:** git repo, demo rebuilt (14/14), pack smoke test, full
+pack run (2,500), training plan revised (see "Run matrix"). The demo listening pass isn't
+recorded anywhere; ask the user whether it happened.
 
 **Not started:**
-- the user listening to the demo (do this before scaling)
-- LLM content packs (`gen_packs.py` is written but has never been run)
-- full train / test datasets
-- a moshi-finetune training yaml for the run matrix
+- the 7 test suites (`--n 90` each); build after the train set finishes
+- `make_splits.py` on the 10 h build (1 h / 10 h jsonl files + ledger)
+- the dev set for per-epoch evaluation (see "Run matrix")
+- the training-config generator (yamls from `ledger.json`) and the GPU-box bootstrap
 - the eval harness (`LMGen` driver)
 - the human-recorded test set
 - training runs
@@ -90,34 +121,22 @@ or self-generated data. The brief, condensed:
 
 ## Next steps, in order
 
-The next real step is **generating the full dataset**. Two cheap gates come first, because
-a problem found after rendering 100 h of audio is expensive.
+1. **When the train build finishes:** `python -m silence.check data/train --finetune
+   ../moshi-finetune`. Read 3–5 episodes with `silence.transcript` and listen to a couple.
+   Then run `make_splits.py data/train --hours 1 10 --abs`.
+2. **Build the 7 test suites** (`--n 90` each, ~630 episodes, so roughly 25–40 min of TTS
+   at the measured throughput).
+3. **Build the dev set** (~100 train-distribution episodes, held out from training and from
+   reporting). Packs should not overlap the 10 h build. Check whether `build.py` can skip
+   used packs or needs a flag.
+4. **Training configs:** a small generator that reads the 1 h episode count `n` from
+   `ledger.json` and writes one yaml per run (see "Run matrix"), plus a GPU-box bootstrap
+   (clone moshi-finetune, apply `patches/moshi-finetune-audio-mask.patch`, pin and download
+   the Moshi revision, 5-step smoke train).
+5. **Eval harness**, then R0 → R1–R5 → choose E and the top 2 LRs → R6–R7, then the listening
+   log and the report. Eval details are still to be discussed with the user.
 
-1. **Listen (≈5 min).** The user reran the demo on this Mac after the fix (12/12 pass). Have
-   him listen to 2–3 episodes in `demo/index.html` with headphones (left = Moshi,
-   right = user + friend + noise). Listen for what checks can't catch: friend loudness,
-   pacing, noise level, mispronounced words. Note: `packs/demo_packs.jsonl` was just edited
-   ("latte" → "iced coffee", "Alfama" → "the old town"), so the next demo build re-renders
-   those two clips.
-2. **Pack smoke test.** `python -m silence.gen_packs --out packs/smoke.jsonl --per-family 10`.
-   Read the output against `packs/demo_packs.jsonl` and check the schema, variety, and
-   pronounceability (see below). **Ask before the full run** (`--per-family 1500`, ~7.5k packs).
-3. **Generate:**
-   - all 7 test suites (`--n 90` each)
-   - the train set at 10 h (`--n 1000`)
-   - `make_splits.py` for the 1 h / 10 h jsonl files and the ledger
-
-   That's roughly an hour of Pocket TTS on this Mac's CPU. Time the first ~50 episodes to
-   get the real throughput.
-4. **Extend to 100 h** (`--n 10000`, same seed) in the background or on the GPU box (~60 h of
-   speech ≈ 10 h of CPU here). Episode types, packs, and specs come out in the same order for
-   the same seed, so the first 1,000 episodes are identical to the 10 h build and reuse its
-   cached clips. 1 h / 10 h training can start while 100 h renders.
-5. Training configs (from `../moshi-finetune/example/moshi_7B.yaml`: LoRA r=64,
-   `duration_sec: 60`, batch 16, `max_steps: 250`, `ckpt_freq: 50`, one yaml per run) and
-   the eval harness, then R0 → R1–R6 → R7, the listening log, and the report.
-
-Optional hygiene: `git init` and commit (`.gitignore` is ready).
+The 100 h build is on hold along with the 100 h run.
 
 ## Pronunciation (Pocket TTS garbles unusual words; the user heard "latte" break)
 
@@ -134,7 +153,8 @@ Optional hygiene: `git init` and commit (`.gitignore` is ready).
 ## Layout
 
 ```
-packs/demo_packs.jsonl     hand-written content packs; the schema reference for gen_packs
+packs/packs.jsonl          LLM content packs (2,500); rejects.jsonl, smoke.jsonl, gen_packs.log
+patches/                   moshi-finetune-audio-mask.patch (apply on the GPU box)
 silence/phrasebank.py      instruction / cue / distractor phrasings, each split train vs test
 silence/splits.py          which axis each test suite holds out (one axis per suite)
 silence/voices.py          voice pools: pocket (default), kyutai, espeak
@@ -144,7 +164,8 @@ silence/assemble.py        timeline -> stereo wav + {alignments, events, meta} j
 silence/build.py           CLI: specs -> TTS -> episodes + manifest.jsonl + episodes.jsonl
 silence/check.py           checks via moshi-finetune's own Interleaver; plots; index.html
 silence/make_splits.py     nested 1h ⊂ 10h ⊂ 100h jsonl subsets + ledger.json + exposure math
-silence/gen_packs.py       LLM content packs via Anthropic API (reads .env)
+silence/gen_packs.py       LLM content packs via Anthropic API (reads .env); schema + speakability filters
+silence/transcript.py      print built episodes as timed transcripts
 silence/list_kyutai_voices.py, calibrate_offset.py   only for the optional 1.6B Kyutai TTS
 ```
 
@@ -203,30 +224,80 @@ English voices. Only 4 unseen voices is a known limitation; say so in the report
   Don't use preemptible GPUs for training.
 - `InterleavedTokenizer` passes a frame count where `prepare_item` expects seconds; it works
   only because the result is then cropped. Don't "fix" it.
-- Recommended LoRA config: r=128 (we plan r=64), scaling 2, lr 2e-6 (low for LoRA; we sweep).
-  1×H100: ~12k tok/s, peak ~40 GB at batch 16 × 100 s.
+- Recommended LoRA config: r=128 (we plan r=64), scaling 2, lr 2e-6 (Kyutai's example pairs
+  it with 2000 steps; the code default in `args.py` is 1e-4). 1×H100: ~12k tok/s, peak ~40 GB
+  at batch 16 × 100 s.
+- Optimizer: AdamW, betas (0.9, 0.95), eps 1e-8 (`train.py:202`). Adam normalizes gradient
+  scale, so loss weights (`first_codebook_weight_multiplier`, `text_padding_weight`) change
+  emphasis, not step size.
+- LR schedule: `OneCycleLR(max_lr=lr, total_steps=max_steps, pct_start)` (`train.py:210`):
+  warmup from lr/25, cosine decay to ~0, average ≈ lr/2. **A mid-run checkpoint is not the
+  same as a shorter run.** It was taken at high LR, before annealing.
+- LoRA: `W' = W + scaling · B·A` on every linear layer, B initialized to zero (so step 0 is
+  exactly the base model), A Kaiming. `scaling: 2` is absolute, equivalent to the usual
+  alpha = 2r.
+- Built-in eval (`do_eval`, `eval_data`, `eval_freq`): forward passes on up to 40 batches,
+  logging text loss and audio loss separately (`finetune/eval.py`). The audio-mask patch
+  covers it.
 
-## Run matrix (planned)
+## Run matrix (agreed 2026-10-14, ~5 pm; supersedes the fixed-steps plan)
 
-Same pinned `kyutai/moshiko-pytorch-bf16` revision for every run; LoRA r=64; fixed steps
-S=250, batch 16, `duration_sec: 60`; checkpoint every 50 steps (free exposure curve).
+**Epochs are fixed per phase, not steps.** 1 h is a proof of concept: does the model start
+picking up the behavior at all?
 
-| Run | Data | LR |
+Fixed for every run:
+- same pinned `kyutai/moshiko-pytorch-bf16` revision
+- LoRA r=64, scaling 2; batch 16; `duration_sec: 60` (one episode = one window)
+- AdamW, weight decay 0.1, OneCycle `pct_start` 0.05
+- `first_codebook_weight_multiplier` 100, `text_padding_weight` 0.5
+- **`mask_main_speech_audio: true`** (patch above)
+- seed 0, one seed per run
+
+`max_steps = ceil(E · n_episodes / 16)`, with `n_episodes` read from `ledger.json`, not
+hardcoded (1 h ≈ 100 episodes, so 1 epoch ≈ 6.25 steps).
+
+| Phase | Run | Data | LR | Epochs | Steps |
+|---|---|---|---|---|---|
+| 0 | R0 | none (base model) | — | — | 0 |
+| 1 | R1–R5 | 1 h | 2e-6, 1e-5, 5e-5, 2e-4, 5e-4 | 20, checkpoint every epoch | ~125 each |
+| 2 | R6–R7 | 10 h | top 2 LRs from phase 1 | E (chosen from phase 1) | E · 1000 / 16 each |
+
+- **Phase 1 chooses E and the top 2 LRs** from per-epoch evaluation on the dev set. 2e-6 is
+  expected to be a no-op at ~125 steps (~0.06× Kyutai's LR × steps). It doubles as a pipeline
+  check: if it doesn't match R0, the LoRA merge or the eval is changing behavior by itself.
+- **Report caveat:** the 1 h point at E epochs is the epoch-E checkpoint of a 20-epoch
+  OneCycle run, not a run trained to exactly E. It's slightly handicapped next to 10 h; label
+  it that way.
+- **Per-epoch evaluation on a small dev set** (agreed in principle; details to be discussed):
+  ~100 train-distribution episodes (training mix, train voices and phrasings, a different
+  seed, packs not in the 10 h build), used only for model selection, never for training or
+  reporting. The 7 test suites stay untouched until the final evaluation of the chosen
+  checkpoints. Cheap layer: built-in eval loss every epoch (`eval_freq` = steps per epoch).
+  Expensive layer: generation eval (harness below) on saved checkpoints, every epoch or every
+  2 depending on measured harness throughput.
+- **Dropped or on hold** (user's call): a separate 1 h rerun at exactly E; the 100 h run and
+  100 h build; the stretched-holds ablation (as designed, ×3 holds would break the 60 s cap);
+  the 1,000 h stretch (one epoch alone is 62,500 steps); the behavior-loss validation script;
+  a second seed.
+
+Compute (assumes ~15 s/step, i.e. ~1 H100-hour per 240 steps; measure on the box):
+
+| | E = 5 | E = 10 |
 |---|---|---|
-| R0 | none (base model) | — |
-| R1–R3 | 1 h | 2e-6, 1e-5, 5e-5 |
-| R4–R6 | 10 h | same three |
-| R7 | 100 h | best 1–2 LRs |
-| stretch | 100 h for 1 epoch; 1,000 h | best LR |
-| ablation | 1 h with every hold stretched ×3 (more hours, same unique content) | best LR |
+| R1–R5 (5 × 125 steps) | 2.6 h | 2.6 h |
+| R6–R7 | 2 × 313 steps ≈ 2.6 h | 2 × 625 steps ≈ 5.2 h |
+| **Training total** | **~5.2 H100-h ≈ $7–18** | **~7.8 H100-h ≈ $10–27** |
+
+Plus eval GPU time, which can't be estimated until the harness exists. Saving a checkpoint
+every epoch for R1–R5 is 100 adapter checkpoints (rough guess 0.3–0.5 GB each), so provision
+~50 GB of disk.
 
 Each episode is one window, so exposure = episode presentations = steps × batch × GPUs;
 `make_splits.py exposure` computes epochs and audio-hours seen. Report unique episodes, unique
 packs, unique TTS clips, total / speech / hold-silence hours separately.
 
-Compute estimate: ~1 H100-hour per run, ~20 H100-hours for the whole study. The user plans
-to rent an H100 (Vast.ai / RunPod / Hyperbolic, ~$1.3–3.5/hr); data generation and eval
-can run elsewhere.
+The user plans to rent an H100 (Vast.ai / RunPod / Hyperbolic, ~$1.3–3.5/hr), on-demand rather
+than preemptible because `train.py` can't resume. Data generation and eval can run elsewhere.
 
 ## Eval harness (not written yet)
 
@@ -252,19 +323,21 @@ can run elsewhere.
 
 ## Known gaps / TODO
 
-- Nobody has listened to the demo yet.
-- `gen_packs.py` untested. Default model `claude-sonnet-5-5`. It forces
+- Whether anyone has listened to the demo isn't recorded; ask.
+- `gen_packs.py` default model is `claude-sonnet-5-5`. It forces
   `base_url="https://api.anthropic.com"` and reads the key from `.env`.
+- `packs/demo_packs.jsonl` was deleted and `build.py` no longer has a `demo` split, so the old
+  demo commands don't work. How the current 14-episode `demo/` was built isn't recorded.
 - Turn-gap distribution is a placeholder lognormal; ideally fit it on DailyTalkContiguous.
 - Noise is synthetic (pink / brown / filtered white).
 - Distractor lines are inserted from a lexicon, so side conversations can be slightly
   incoherent around them. Possible fix: have the LLM write side conversations with tagged
   distractor slots.
 - B1 fillers come from each pack's `mutter` field; they're tagged D2c.
-- `demo/` uses the hand-written packs in `packs/demo_packs.jsonl`; it's a plumbing and
-  listening check only.
-- Pocket TTS on this Mac runs on CPU (~6× real-time on Apple Silicon). 100 h of episodes is
-  ~60 h of speech to synthesize, so it may be worth running that build on the GPU box.
+- `demo/` is a plumbing and listening check only.
+- Pocket TTS on this Mac: measured ~11.9× realtime with 4 workers on the 10 h build
+  (1,000 episodes ≈ 7,661 clips ≈ 7.8 h of speech ≈ 40 min). If 100 h comes back, that's
+  ~78 h of speech ≈ 6.5 h of CPU here, and it needs more packs first.
 - The KyutaiTTS (1.6B, GPU) backend is optional and untested; calibrate its word offset first.
 
 ## Working with the user (Jaewoo)

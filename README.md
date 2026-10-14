@@ -7,18 +7,20 @@ instruction, and when to speak again. Builds episodes in the format
 ## Layout
 
 ```
-packs/demo_packs.jsonl     hand-written content packs (schema reference)
+packs/packs.jsonl          LLM content packs (+ rejects.jsonl with reasons, smoke.jsonl)
+patches/                   moshi-finetune-audio-mask.patch (apply to the trainer checkout)
 silence/phrasebank.py      instruction / cue / distractor phrasings, split train vs test
 silence/splits.py          what each test suite holds out (one axis at a time)
-silence/voices.py          voice pools (espeak for the demo, Kyutai VCTK for real)
+silence/voices.py          voice pools: pocket (default), kyutai, espeak
 silence/specs.py           episode builders: B1 timed hold, B2 side conversation,
                            B3 hear-me-out, ordinary, decoys, test-only conditions
-silence/tts.py             TTS backends (espeak | kyutai) with word timestamps + clip cache
+silence/tts.py             TTS backends (pocket | kyutai | espeak) with word timestamps + clip cache
 silence/assemble.py        timeline -> stereo wav + {alignments, events, meta} json
 silence/build.py           CLI: specs -> TTS -> episodes + manifest
 silence/check.py           checks via moshi-finetune's own Interleaver, plots, index.html
 silence/make_splits.py     nested 1h/10h/100h subsets + data ledger + exposure math
-silence/gen_packs.py       LLM content packs (Anthropic API)
+silence/gen_packs.py       LLM content packs (Anthropic API) + schema / speakability filters
+silence/transcript.py      print built episodes as timed transcripts
 silence/list_kyutai_voices.py, calibrate_offset.py   GPU-box setup helpers
 ```
 
@@ -56,33 +58,54 @@ TTS is Kyutai Pocket TTS (~100M params, runs on CPU) through the
 attention, so no separate aligner is needed. Voices: 16 predefined voices for
 training, 4 held out for test, `michael` fixed for Moshi (see `silence/voices.py`).
 
-## Demo: one episode of each type
+## Status (2026-10-14)
 
-```
-python -m silence.build demo --out demo
-python -m silence.check demo --finetune ../moshi-finetune --plots   # writes demo/index.html
-```
+- Demo: 14 episodes in `demo/` (one per type plus B1 double hold, phone call, minute-scale
+  B1), 14/14 pass `check.py`. `build.py` no longer has a `demo` split.
+- Packs: 2,500 in `packs/packs.jsonl` (500 per family; 620 rejected).
+- 10 h train set (`data/train`, 1,000 episodes): building. Pocket TTS runs at ~12× realtime
+  with 4 workers on an Apple Silicon CPU, so about 40 min for 10 h.
+- Not yet: test suites, dev set, training configs, eval harness, human test set, runs.
 
 ## Full data
 
 ```
-python -m silence.gen_packs --out packs/packs.jsonl --per-family 1500
-python -m silence.build train --packs packs/packs.jsonl --n 10000 --out data/train
+python -m silence.gen_packs --out packs/packs.jsonl --per-family 500 --rejects packs/rejects.jsonl
+python -m silence.build train --packs packs/packs.jsonl --n 1000 --out data/train     # 10 h
 for s in test_script test_word test_voice test_distract test_cond test_ordinary test_all; do
   python -m silence.build $s --packs packs/packs.jsonl --n 90 --out data/$s; done
-python -m silence.make_splits data/train --hours 1 10 100 --abs
+python -m silence.make_splits data/train --hours 1 10 --abs
 python -m silence.check data/train --finetune ../moshi-finetune
+python -m silence.transcript data/train/episodes/tr_000000.json     # read an episode
 ```
 
 Then point moshi-finetune's `data.train_data` at `data/train/train_1h.jsonl` (etc.).
+Rerunning `gen_packs` with the same `--out` tops each family up to `--per-family`.
 `--tts kyutai` switches to the 1.6B Kyutai TTS on a GPU (calibrate its word offset first
 with `python -m silence.calibrate_offset`). `--tts espeak` is a robotic offline fallback.
+
+## Training plan
+
+LoRA r=64 on `kyutai/moshiko-pytorch-bf16` (one pinned revision), batch 16, 60 s windows
+(one episode each), AdamW + OneCycle, `mask_main_speech_audio: true` from
+`patches/moshi-finetune-audio-mask.patch` (no audio loss on Moshi's own TTS speech, so the
+synthetic voice can't pull Moshi's voice). Epochs are fixed per phase, and
+`max_steps = ceil(epochs × episodes / 16)`.
+
+| Phase | Run | Data | LR | Epochs |
+|---|---|---|---|---|
+| 0 | R0 | base model | — | — |
+| 1 | R1–R5 | 1 h | 2e-6, 1e-5, 5e-5, 2e-4, 5e-4 | 20, checkpoint and dev eval every epoch |
+| 2 | R6–R7 | 10 h | top 2 from phase 1 | E chosen from phase 1 |
+
+Model selection uses a held-out dev set (train distribution); the test suites are only for
+the final evaluation. About 5–8 H100-hours of training. 100 h is on hold.
 
 ## Known gaps
 
 - `KyutaiTTS` (optional GPU backend) mirrors `TTSModel.simple_generate` but is untested.
-- Pocket TTS has 20 English voices, so the voice-generalization test has only 4 unseen
-  speakers.
+- Pocket TTS has 20 English voices plus Moshi's fixed `michael`, so the
+  voice-generalization test has only 4 unseen speakers.
 - Turn-gap distribution is a placeholder; fit it on DailyTalkContiguous timestamps.
 - Background noise is synthetic (pink / brown / filtered white); swap in real noise
   clips split by file for the final runs.
