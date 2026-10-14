@@ -121,8 +121,8 @@ Each suite changes one axis versus training:
 | `test_ordinary` | scripts; ordinary questions and decoys only (regression) |
 | `test_all` | scripts + wording + voices |
 
-All suites draw the same test packs in the same order, so comparisons between suites are
-paired.
+Each suite draws its own episode types and pack order, so the mix-based suites share only
+42–68 of their 90 scripts. Comparing models on one suite is paired; comparing suites is not.
 
 ## Training (rented GPU)
 

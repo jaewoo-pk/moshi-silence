@@ -209,9 +209,16 @@ for s in test_script test_word test_voice test_distract test_cond test_ordinary 
 
 - Test episodes have no 60 s cap; B1 "a minute" runs past 60 s. That's fine for generation
   eval, since the context is 240 s.
-- **All suites draw test packs in the same order** (`PackSampler` seeds on
-  `packs:{seed}:test`). test_script / test_word / test_voice / test_all therefore share
-  scripts: comparisons between suites are paired, but the suites aren't independent samples.
+- **The suites are NOT paired** (checked 2026-10-14). `PackSampler` seeds on
+  `packs:{seed}:test`, but it uses one RNG for all families and shuffles each family's queue
+  lazily, in the order the suite's own type sequence (`types:{seed}:{split}`) first asks for
+  it. So each suite draws its own episode types and its own pack order. test_script /
+  test_word / test_voice / test_all share only 42–68 of their 90 packs pairwise, and their
+  type mixes differ (B1: 6 / 11 / 14 / 14 episodes). Differences between suites therefore
+  mix the held-out axis with script and type-mix differences. Comparisons between models on
+  the same suite are fully paired.
+- test_word and test_all use the test B1 durations (8 / 12 / 25 s, never trained), so B1
+  timing there confounds new wording with new N.
 - test_distract and test_cond need ~63 B2 packs from 60. The sampler silently reshuffles and
   reuses (`uses` is counted but never printed), so ~3 B2 scripts repeat in each.
 - test_word holds out the **user's** wording. Moshi's acks ("Sure.", "Okay, I'll wait.") come
