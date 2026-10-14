@@ -22,6 +22,7 @@ EPS=$REPO/data/dev/$SET.jsonl
 [ -f "$EPS" ] || { echo "no $EPS"; exit 2; }
 LOGS=$W/logs/eval
 GEN_ARGS="--moshi-dir $W/moshiko --finetune $W/moshi-finetune ${EXTRA:-}"  # EXTRA="--batch 80" etc.
+export HF_HUB_OFFLINE=1  # weights are local; the (404) config.json probe must not hit a flaky hub
 mkdir -p "$LOGS"
 read -r -a GPU_LIST <<< "${GPUS:-$(nvidia-smi --query-gpu=index --format=csv,noheader | tr '\n' ' ')}"
 cd "$REPO"

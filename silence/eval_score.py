@@ -202,10 +202,17 @@ def score_episode(events, duration, segs, words, th=Thresholds()):
         barge.append({"pause": [p0, p1], "barged": hit})
     out["barge_ins"] = barge
 
+    # Onsets inside human turns, excluding turns that overlap a resume window (a late but
+    # in-window resume may land on the user's scripted next line; that's scored as a resume).
+    resume_wins = []
+    for h in events["holds"]:
+        rel = h["release"]
+        tol = th.timer_tol(rel["N"]) if rel["kind"] == "timer" else th.cue_pre
+        resume_wins.append((rel["ref"] - tol, rel["ref"] + th.resume_win))
     inter = 0
     for t in human:
         a, b = t["t"]
-        if in_windows(a, windows):
+        if in_windows(a, windows) and not any(a < w1 and b > w0 for w0, w1 in resume_wins):
             inter += sum(a + 0.3 <= s <= b - 0.3 for s, _ in segs)
     out["interrupt_onsets"] = inter
     return out
@@ -217,7 +224,7 @@ def words_from_text_tokens(tokens, piece, pad=3, epad=0):
     at a sentencepiece piece with the '▁' prefix; following non-prefixed pieces extend it."""
     words = []
     for f, tok in enumerate(tokens):
-        if tok in (pad, epad) or tok < 0:
+        if tok in (pad, epad, 1, 2) or tok < 0:  # 1 / 2 = sentencepiece <s> / </s>
             continue
         p = piece(int(tok))
         if p.startswith("▁") or not words:

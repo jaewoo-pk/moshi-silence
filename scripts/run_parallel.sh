@@ -43,7 +43,9 @@ free=("${GPU_LIST[@]}")
 start() {  # $1 = config, $2 = gpu
   local name; name=$(basename "$1" .yaml)
   rm -f "$LOGS/$name.rc"
-  ( cd "$MF" && CUDA_VISIBLE_DEVICES=$2 "$TORCHRUN" --nproc-per-node 1 \
+  # HF_HUB_OFFLINE: weights are local; moshi's config.json probe (404 on this repo) must not
+  # depend on the hub being reachable.
+  ( cd "$MF" && CUDA_VISIBLE_DEVICES=$2 HF_HUB_OFFLINE=1 "$TORCHRUN" --nproc-per-node 1 \
       --master_port $((29500 + 10 * $2)) -m train "$1" > "$LOGS/$name.log" 2>&1
     echo $? > "$LOGS/$name.rc" ) &
   pid_gpu[$!]=$2; pid_name[$!]=$name; pid_t0[$!]=$(date +%s)

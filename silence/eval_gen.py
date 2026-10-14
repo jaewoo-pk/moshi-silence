@@ -109,6 +109,28 @@ def write_wav(path, x):
     wavfile.write(path, SR, (np.clip(x, -1, 1) * 32767).astype(np.int16))
 
 
+MIMI_CHUNK = 4  # Mimi is fp32 with 64-channel sample-rate activations: ~3 GB per 60 s episode
+
+
+def mimi_encode(mimi, wav, device):
+    """[B, 1, N] float (cpu) -> [B, 8, T] long (device), a few episodes at a time. Causal model,
+    so encoding episodes together or alone gives the same codes."""
+    out = []
+    with torch.no_grad():
+        for i in range(0, wav.shape[0], MIMI_CHUNK):
+            out.append(mimi.encode(wav[i: i + MIMI_CHUNK].to(device)))
+    return torch.cat(out)
+
+
+def mimi_decode(mimi, codes):
+    """[B, 8, T] long -> [B, N] float32 numpy, a few episodes at a time."""
+    out = []
+    with torch.no_grad():
+        for i in range(0, codes.shape[0], MIMI_CHUNK):
+            out.append(mimi.decode(codes[i: i + MIMI_CHUNK]).float().cpu().numpy()[:, 0])
+    return np.concatenate(out)
+
+
 def prepare(wav_paths, mimi, il, device, th=None):
     """Per-batch tensors: user codes, script text + audio codes, force mask; padded to T_max."""
     eps = []
@@ -123,10 +145,9 @@ def prepare(wav_paths, mimi, il, device, th=None):
     audio = np.zeros((B, 2, n_max), np.float32)
     for i, e in enumerate(eps):
         audio[i, :, : len(e["wav"])] = e["wav"].T
-    with torch.no_grad():
-        a = torch.from_numpy(audio).to(device)
-        moshi_codes = mimi.encode(a[:, 0:1])  # [B, 8, T]
-        user_codes = mimi.encode(a[:, 1:2])
+    a = torch.from_numpy(audio)
+    moshi_codes = mimi_encode(mimi, a[:, 0:1], device)  # [B, 8, T]
+    user_codes = mimi_encode(mimi, a[:, 1:2], device)
     T = moshi_codes.shape[-1]
     text = torch.full((B, T), 3, dtype=torch.long)  # PAD; frames past an episode's end are free anyway
     force = torch.zeros((B, T), dtype=torch.bool)
@@ -164,6 +185,8 @@ class ForcedLMGen:
         assert self.delays[: self.dep_q + 1] == [0, 0] + [1] * (self.dep_q - 1), self.delays
         assert max(self.delays) == 1
 
+    record = None  # selftest: list that receives a copy of every model input column
+
     @torch.no_grad()
     def step(self, user, force_text=None, text_script=None, force_a0=None, a0_script=None,
              force_a17=None, a17_script=None, want_logits=False):
@@ -182,6 +205,8 @@ class ForcedLMGen:
             if st.offset <= delay:
                 st.cache[:, k, pos] = st.initial[:, k, 0]
         inp = st.cache[:, :, pos: pos + 1]
+        if self.record is not None:
+            self.record.append(inp.clone())
         transformer_out, text_logits = st.graphed_main(inp, st.condition_sum)
         text = sample_token(text_logits.float(), g.use_sampling, g.temp_text, g.top_k_text)[:, 0, 0]
         if force_text is not None:
@@ -250,6 +275,9 @@ def cmd_selftest(a):
     force[:] = True
     T = user.shape[-1]
     codes = torch.cat([text[:, None], moshi, user], 1)  # [1, 17, T], training layout
+    from moshi.models.lm_utils import _delay_sequence
+    initial = lm._get_initial_token().expand(1, -1, -1)
+    train_cols = torch.cat([initial, _delay_sequence(lm.delays, codes, initial)], 2)[:, :, :T]
     with torch.no_grad():
         ref = lm.forward(codes).text_logits[0, 0].float()  # [T, V]
     set_context(lm, T)
@@ -258,7 +286,12 @@ def cmd_selftest(a):
     res = {}
     for shift in (0, 1):
         torch.manual_seed(0)
+        fg.record = []
         _, _, lg = generate(fg, user, moshi, text, force, user_shift=shift, want_logits=True)
+        cols = torch.cat(fg.record, 2)[:, :, :T]
+        fg.record = None
+        # Exact check (integers): the columns the model read vs the training forward's input.
+        col_eq = (cols == train_cols).all(1).float().mean().item()
         lg = lg[0]
         ok = torch.isfinite(ref).all(-1)
         diff = (lg[ok] - ref[ok]).abs().max(-1).values
@@ -266,14 +299,17 @@ def cmd_selftest(a):
         tgt = text[0][ok]
         ce_gen = torch.nn.functional.cross_entropy(lg[ok], tgt).item()
         ce_ref = torch.nn.functional.cross_entropy(ref[ok], tgt).item()
-        res[shift] = agree
-        print(f"user shift {shift}: argmax agreement {100 * agree:.1f}%, max|dlogit| median {diff.median():.3f} "
-              f"p99 {diff.quantile(0.99):.3f}; script text CE gen {ce_gen:.3f} vs training forward {ce_ref:.3f}")
+        res[shift] = col_eq
+        print(f"user shift {shift}: input columns identical to training {100 * col_eq:.1f}%; text logits: argmax "
+              f"agreement {100 * agree:.1f}%, max|dlogit| median {diff.median():.3f} p99 {diff.quantile(0.99):.3f} "
+              f"(bf16 streaming vs full forward); script text CE {ce_gen:.3f} vs {ce_ref:.3f}")
     best = max(res, key=res.get)
-    print(f"=> shift {best} matches training" + ("" if best == a.user_shift else
-          f"  !! differs from --user-shift {a.user_shift}; fix the default before evaluating"))
-    if res[best] < 0.97:
-        print("!! agreement < 97%: something else is misaligned; do not trust generation evals")
+    if res[best] == 1.0:
+        print(f"=> shift {best} matches training (every input column identical)" + ("" if best == a.user_shift else
+              f"  !! differs from --user-shift {a.user_shift}; fix the default before evaluating"))
+    else:
+        print(f"!! no shift reproduces the training input columns exactly (best: shift {best}, "
+              f"{100 * res[best]:.1f}%): the forcing is misaligned; do not trust generation evals")
 
 
 def swap_lora(lm, ckpt, device):
@@ -361,8 +397,7 @@ def cmd_run(a):
                 torch.manual_seed(a.seed + 1000 * j + b0)
                 text_out, audio_out, _ = generate(fg, user, moshi, text, force, user_shift=a.user_shift)
                 ms.append(1000 * (time.time() - tb) / (T + 1))
-                with torch.no_grad():
-                    wav = mimi.decode(audio_out).float().cpu().numpy()[:, 0]  # [B, N]
+                wav = mimi_decode(mimi, audio_out)  # [B, N]
                 for k, e in enumerate(eps):
                     n = int(round(e["dur"] * SR))
                     x = wav[k, :n]

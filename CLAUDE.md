@@ -446,6 +446,10 @@ The committed `index.html` points at wavs that only exist in the main checkout.
 - moshi-finetune says only `requires-python >= 3.10` and has no `.python-version`, so uv
   picks the newest Python (3.14), for which torch 2.6.0 has no wheels. The bootstrap pins
   `UV_PYTHON=3.12`.
+- moshi's loader always probes the hub for the base repo's `config.json` (there is none → 404,
+  caught). A hub outage / 429 would crash a job at load, so every training and eval command
+  runs with `HF_HUB_OFFLINE=1` (weights are local); the probe then fails instantly and is
+  caught. Only the bootstrap's weight download (step 2) needs the hub.
 - The dev loss averages per-batch means, and 200 = 12 × 16 + 8, so the last 8 dev episodes
   count about double (~4% of the weight). It's the same at every checkpoint, so comparisons
   are unaffected; mention it if absolute dev-loss values are reported.
@@ -585,11 +589,24 @@ human turns.
   token for token; multi-checkpoint layout + resume work. `eval_dev.sh` tested with a fake
   python.
 - Not yet run: anything with the 7B weights (memory, speed, bf16 selftest agreement).
+- Second review (2026-10-14, eval code): found the Mimi batch-memory blocker above; CUDA-graph
+  buffer reuse, graph-safe RNG + per-batch `manual_seed`, KV capacity, the alignment, the
+  checkpoint `config.json` keys and the LoRA key naming (world size 1: plain module names)
+  all verified OK. Scanned free windows on dev + 4 test suites: none empty / overlapping /
+  ending inside the scripted release response.
 
 **Memory:** the KV cache is sized by the attention context (3000 frames ≈ 1.6 GB per
 sequence for the 7B). `set_context` shrinks it to the batch's frame count (≥ the sequence,
-so attention is unchanged): ~0.4 GB per 60 s episode, so batch 40–80 fits next to the 15 GB
-model. Default `--batch 40`; try 80 after the benchmark.
+so attention is unchanged): ~0.4 GB per 60 s episode (B=40: 16 GB, B=80: 32 GB) next to the
+15 GB model. Default `--batch 40`; try 80 after the benchmark. **Mimi is the memory hog, not
+the LM:** it's fp32 with 64-channel activations at the sample rate, ~3 GB per 60 s episode
+for encode or decode, so `eval_gen` runs Mimi 4 episodes at a time (`MIMI_CHUNK`); encoding
+a whole batch of 40 at once would need > 100 GB (found in review, 2026-10-14).
+
+**`selftest` criterion:** it records every input column the model actually read and compares
+them integer-for-integer with the training forward's input (`cat([initial, delayed codes])`).
+Pass = 100% identical columns for shift 1. The logit agreement is printed only as a secondary
+check (bf16 streaming vs full-sequence attention differ slightly).
 
 **Still to build:** Whisper ASR pass + LLM judge for the final test evals; the listening log.
 

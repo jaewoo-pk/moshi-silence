@@ -109,12 +109,16 @@ def epoch_of(configs, run, ckpt):
 
 def dev_loss(runs, run, ckpt):
     """text / audio dev loss at the checkpoint's step from <runs>/<run>/metrics.eval.jsonl."""
-    if not runs or not ckpt.startswith("checkpoint_"):
+    if not runs:
         return np.nan, np.nan
-    f = Path(runs) / run / "metrics.eval.jsonl"
+    if ckpt.startswith("checkpoint_"):
+        f, step = Path(runs) / run / "metrics.eval.jsonl", int(ckpt.split("_")[1])
+    elif run.startswith("R0"):  # base model: the R0_devloss run evaluates at its last step (2)
+        f, step = Path(runs) / "R0_devloss" / "metrics.eval.jsonl", 2
+    else:
+        return np.nan, np.nan
     if not f.exists():
         return np.nan, np.nan
-    step = int(ckpt.split("_")[1])
     for line in f.read_text().splitlines():
         d = json.loads(line)
         if d.get("step") == step:

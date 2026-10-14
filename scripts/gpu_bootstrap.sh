@@ -71,6 +71,9 @@ echo "== 4. phase-1 configs (+ R0_devloss: the base model's dev loss, no trainin
 python3 -m silence.make_configs --phase 1 --train "$REPO/data/train/train_1h.jsonl" \
   --eval "$REPO/data/dev/dev_200.jsonl" --moshi-dir "$MOSHI_DIR" --runs "$W/runs" --out "$REPO/configs"
 
+# From here on nothing needs the hub: weights are local, and moshi's config.json probe (the base
+# repo has none) then fails instantly instead of depending on the network.
+export HF_HUB_OFFLINE=1
 echo "== 5. smoke train: 6 steps of R3; dev loss + checkpoint at steps 3 and 6"
 # Two evaluations, so the eval-reload patch is exercised (unpatched, the 2nd one is NaN).
 SMOKE=$W/runs/_smoke
@@ -94,7 +97,7 @@ cd "$REPO"
 CUDA_VISIBLE_DEVICES=0 "$PY/python" -m silence.eval_gen selftest --episodes data/dev/dev_80.jsonl \
   --moshi-dir "$MOSHI_DIR" --finetune "$MF" 2>&1 | tee "$W/eval_selftest.log" \
   || { echo "EVAL SELFTEST FAIL (see $W/eval_selftest.log)"; exit 1; }
-grep -q "=> shift 1 matches training" "$W/eval_selftest.log" || { echo "EVAL SELFTEST FAIL: shift 1 doesn't match"; exit 1; }
+grep -q "=> shift 1 matches training" "$W/eval_selftest.log" || { echo "EVAL SELFTEST FAIL: shift 1 doesn't reproduce the training inputs"; exit 1; }
 rm -rf "$W/eval/_bench"
 CUDA_VISIBLE_DEVICES=0 "$PY/python" -m silence.eval_gen run --episodes data/dev/dev_80.jsonl --limit 40 --batch 40 \
   --moshi-dir "$MOSHI_DIR" --finetune "$MF" --out "$W/eval/_bench" 2>&1 | tee "$W/eval_bench.log" || { echo "EVAL BENCH FAIL (see $W/eval_bench.log)"; exit 1; }
