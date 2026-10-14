@@ -126,10 +126,29 @@ paired.
 
 ## Training (rented GPU)
 
+Plan: RunPod Secure Cloud, on-demand (not spot: runs can't resume), with a ≥ 150 GB network
+volume at `/workspace`. Set up on a 1× H100 pod, then train on a 4× H100 pod using the same
+volume.
+
 ```
-rsync -a --exclude .venv --exclude models --exclude cache --exclude demo moshi-silence/ box:/workspace/moshi-silence/
+# 1x pod: upload code + data (~6.2 GB), install, smoke-test
+rsync -a --exclude .git --exclude .claude --exclude .venv --exclude models --exclude cache \
+    --exclude demo moshi-silence/ box:/workspace/moshi-silence/
 ssh box 'bash /workspace/moshi-silence/scripts/gpu_bootstrap.sh'
+
+# 4x pod, same volume: one run per GPU; the next config starts as a GPU frees up
+cd /workspace/moshi-silence && mkdir -p /workspace/logs
+nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml configs/R?_1h_*.yaml > /workspace/logs/parallel.log 2>&1 &
+tail -f /workspace/logs/parallel.log
 ```
+
+`run_parallel.sh`:
+- gives each run its own GPU, `torchrun` port and log (`/workspace/logs/<run>.log`)
+- marks finished runs `.done` and skips them on a rerun
+- refuses to start over a leftover `run_dir`, since an interrupted run can't resume (delete
+  the `run_dir` to redo it)
+
+Phase 1 takes ~1.7 h on 4× instead of ~4.3 h on 1×, for the same GPU-hours.
 
 The bootstrap:
 1. clones moshi-finetune at upstream `2acc879f` and applies the three patches

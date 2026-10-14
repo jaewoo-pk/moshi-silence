@@ -71,11 +71,21 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
 ## Next steps, in order
 
 1. ~~Build and check the test suites~~ (done, see "Test suites").
-2. **Get one complete tree** (see Git above), then rent the GPU. That's the user's call:
-   on-demand, not spot, since `train.py` can't resume. Plan an H100 80 GB with ≥ 100 GB disk.
-3. **On the box:** `bash scripts/gpu_bootstrap.sh`. Note the measured s/step and peak memory
-   from `smoke.log`, and update the compute table below.
-4. **Run `R0_devloss`, then R1–R5** (phase 1), one at a time.
+2. **Get one complete tree** (see Git above), then rent the GPU. **Agreed plan** (user,
+   2026-10-14):
+   - RunPod **Secure Cloud, on-demand** (never spot: `train.py` can't resume). ~$3/hr per
+     H100 SXM.
+   - Create a **network volume ≥ 150 GB** first, mounted at `/workspace`.
+   - **1× H100 SXM pod for setup**, with SSH over exposed TCP so rsync works.
+   - Then a **4× H100 SXM pod on the same volume** for the training burst.
+   - Drop back to 1× (or stop) while waiting on harness work: idle 4× costs ~$12/hr.
+3. **On the 1× pod:** rsync the tree + `data/` (~6.2 GB; command in the
+   `scripts/gpu_bootstrap.sh` header), then `bash scripts/gpu_bootstrap.sh`. Everything (uv,
+   its Python, the env, weights, configs) lands on the volume. Note the measured s/step and
+   peak memory from `smoke.log` and update the compute table below. Stop the pod.
+4. **On the 4× pod:** `nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml
+   configs/R?_1h_*.yaml > /workspace/logs/parallel.log 2>&1 &`. That's one run per GPU,
+   with the next queued config starting as a GPU frees up: R1–R4 together, then R5 + R0.
 5. **Meanwhile write the eval harness** (see "Eval harness"). Agree the eval details with the
    user first. Then: R0 generation eval on dev, phase-1 dev evals, then choose E and the top
    2 LRs. After that R6–R7, test suites on the final checkpoints, listening log, report.
@@ -344,6 +354,7 @@ silence/check_overlap.py   train vs held-out audit (packs, near-dup scripts, sha
 silence/make_configs.py    moshi-finetune yamls per run (fixed epochs) + checkpoint -> epoch maps
 silence/list_kyutai_voices.py, calibrate_offset.py   only for the optional 1.6B Kyutai TTS
 scripts/gpu_bootstrap.sh   GPU box: moshi-finetune + 3 patches (uv.lock env), pinned weights, configs, smoke
+scripts/run_parallel.sh    run configs one per GPU (own CUDA device + master port + log); skips .done, refuses leftover run_dirs
 patches/moshi-finetune-audio-mask.patch    mask_main_speech_audio (no audio loss on Moshi's TTS speech)
 patches/moshi-finetune-eval-reload.patch   fresh eval loader per eval + text/audio dev loss logged
 patches/moshi-finetune-text-tail.patch     no text loss on the zero-padded tail of a window
@@ -458,7 +469,13 @@ Fixed for every run (`silence/make_configs.py`):
 - Per-epoch dev loss on 200 episodes (13 forward batches every 7 steps) adds roughly +40–50%
   to phase 1, so ≈ 4.3 h.
 - Phase 2: E=5 ≈ 2.9 h, E=10 ≈ 5.7 h (eval adds ~5% there).
-- Total ≈ 7–10 H100-hours ≈ $10–36 at $1.3–3.5/hr. Generation evals come on top.
+- Total ≈ 7–10 H100-hours ≈ $10–36 at $1.3–3.5/hr. Generation evals come on top. With setup,
+  smoke and evals, ~12–15 GPU-hours ≈ $35–45 at RunPod's ~$3/hr.
+- **Wall-clock on 4× H100** (one run per GPU via `run_parallel.sh`; same GPU-hours):
+  phase 1 ≈ 1.7 h (R1–R4, then R5 + R0) instead of ~4.3 h on 1×. Phase 2 at E=10 ≈ 2.9 h
+  (R6 and R7 side by side, while the other 2 GPUs run generation evals) instead of ~5.7 h.
+  Don't split one run across GPUs: moshi-finetune's `batch_size` is per GPU, so that would
+  change the recipe, and 142-step runs gain little.
 - Disk: phase 1 checkpoints ≈ 105 × 0.39 GB ≈ 41 GB.
 
 **Exposure accounting:** each episode is one window, so exposure = steps × batch × GPUs.

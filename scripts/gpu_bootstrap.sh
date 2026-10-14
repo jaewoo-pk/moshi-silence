@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# One-time setup on the rented GPU box, then a 6-step smoke train.
+# One-time setup on a 1x H100 pod, then a 6-step smoke train. Everything goes on the network
+# volume at /workspace, so a 4x pod mounting the same volume can train right away
+# (scripts/run_parallel.sh).
 #
-#   rsync -a --exclude .venv --exclude models --exclude cache --exclude demo \
-#       moshi-silence/ box:/workspace/moshi-silence/        # code + patches + data/ (~5 GB)
+#   rsync -a --exclude .git --exclude .claude --exclude .venv --exclude models --exclude cache \
+#       --exclude demo moshi-silence/ box:/workspace/moshi-silence/   # code + patches + data/ (~6.2 GB)
 #   ssh box 'bash /workspace/moshi-silence/scripts/gpu_bootstrap.sh'
 #
-# Needs: Linux + CUDA GPU (H100 80 GB planned), python3, git, curl; ~20 GB disk for weights
-# and ~45 GB for phase-1 checkpoints (21 per run x ~0.39 GB x 5 runs). Safe to rerun.
+# Needs: Linux + CUDA GPU, python3, git, curl; volume >= 150 GB (weights ~16 GB, data ~6 GB,
+# env ~10 GB, phase-1 checkpoints ~41 GB = 105 x ~0.39 GB). Safe to rerun.
 set -euo pipefail
 
 W=${W:-/workspace}
@@ -30,7 +32,11 @@ apply moshi-finetune-text-tail.patch "Past the end of the file the audio is zero
 # pyproject pins sphn==0.1.12 but takes moshi from git main, which now needs sphn>=0.2, so a
 # plain `pip install -e .` can't resolve. uv.lock pins the tested set (moshi 061cc4c =
 # 0.2.4a1, sphn 0.1.12, torch 2.6.0, huggingface-hub 0.28.1).
-command -v uv > /dev/null || { curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH="$HOME/.local/bin:$PATH"; }
+# uv, its managed Python and its cache all live on the volume, so the env survives moving the
+# volume to a new pod (1x for setup, then 4x for training); the home dir doesn't persist.
+export UV_INSTALL_DIR=$W/bin UV_PYTHON_INSTALL_DIR=$W/uv-python UV_CACHE_DIR=$W/uv-cache \
+       UV_PYTHON_PREFERENCE=only-managed PATH="$W/bin:$PATH"
+[ -x "$W/bin/uv" ] || curl -LsSf https://astral.sh/uv/install.sh | sh
 (cd "$MF" && uv sync --frozen)
 (cd "$MF" && uv pip freeze) > "$W/pip-freeze.txt"   # exact environment, for the report
 
@@ -71,5 +77,6 @@ if ! grep -q "text_eval_loss" "$W/smoke.log"; then echo "SMOKE FAIL: no text_eva
 n_err=$(grep -ci "error" "$W/smoke.log" || true)
 [ "$n_err" -eq 0 ] || echo "WARNING: $n_err lines mention 'error' (sphn skips unreadable wavs with only a log line)"
 echo "SMOKE OK ($n_ckpt checkpoints, no NaN). Peak memory and s/step are in $W/smoke.log."
-echo "Next (one run at a time; train.py can't resume, so use an on-demand instance; run_dir must not exist):"
-echo "  cd $MF && for c in $REPO/configs/R0_devloss.yaml $REPO/configs/R?_1h_*.yaml; do $PY/torchrun --nproc-per-node 1 -m train \$c; done"
+echo "Next: stop this pod, start a 4x H100 pod on the same network volume, then (no re-setup needed):"
+echo "  cd $REPO && mkdir -p $W/logs && nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml configs/R?_1h_*.yaml > $W/logs/parallel.log 2>&1 &"
+echo "  tail -f $W/logs/parallel.log"
