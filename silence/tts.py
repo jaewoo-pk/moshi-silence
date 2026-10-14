@@ -181,7 +181,7 @@ class KyutaiTTS:
     `word_offset_frames`: transcript steps are on the TTS *text* timeline. Audio is
     decoded from frames[delay_steps:] and the first 2 decoded frames are dropped (as in
     simple_generate), so a word consumed at text step s should start at audio frame
-    ~ s - 2. CALIBRATE THIS on the GPU box (scripts/calibrate_offset.py) before
+    ~ s - 2. CALIBRATE THIS on the GPU box (silence/calibrate_offset.py) before
     generating at scale.
     """
     name = "kyutai"

@@ -1,49 +1,70 @@
 # moshi-silence
 
-Synthetic data for teaching Moshi conditional silence: when to stay quiet on
-instruction, and when to speak again. Builds episodes in the format
-[kyutai-labs/moshi-finetune](https://github.com/kyutai-labs/moshi-finetune) trains on.
+How much synthetic fine-tuning data does it take to teach Moshi (`kyutai/moshiko-pytorch-bf16`)
+when to stay silent on instruction and when to speak again? This repo generates the data
+(in the format [kyutai-labs/moshi-finetune](https://github.com/kyutai-labs/moshi-finetune)
+trains on), audits it, and sets up the fine-tuning runs. See `CLAUDE.md` for the full design,
+decisions and status.
+
+## Status (2026-10-14)
+
+| | |
+|---|---|
+| Packs | 2,500 LLM content packs (`packs/packs.jsonl`); 348 screened test packs |
+| Train | `data/train`: 1,150 episodes / 10.49 h, all pass checks. `train_1h.jsonl` = 113 episodes / 1.01 h, `train_10h.jsonl` = 1,101 / 10.01 h (1 h ⊂ 10 h) |
+| Dev | `data/dev`: 200 episodes / 1.97 h, `dev_80` ⊂ `dev_200`, balanced per family, no pack or script overlap with train |
+| Test | 7 suites × 90 episodes (`data/test_*`), each holding out one axis |
+| Training | Configs + GPU bootstrap ready, not yet run. Eval harness not written. |
+
+## Episodes
+
+Four behavior families, mixed 15 / 25 / 20 / 40 in training:
+
+- **B1 timed hold:** "give me ten seconds, then ask me again". Variants: std, double hold,
+  early answer, rescind.
+- **B2 side conversation:** "stay quiet until I'm back", with distractors.
+- **B3 hear me out:** "let me describe all three options". Variants: std, finishes early,
+  rescind.
+- **Ordinary Q&A**, plus lexical decoys.
+
+`episodes/<id>.wav` is stereo 24 kHz: **left = Moshi, right = user + friend + noise**.
+Train episodes are ≤ 60 s, i.e. exactly one training window. `episodes/<id>.json` holds:
+
+- `alignments`: Moshi's words only, `[word, [start, end], "SPEAKER_MAIN"]`. This is the
+  only key the trainer reads.
+- `events`: eval labels: `instr_end`, holds and releases (kind, reference time, Moshi
+  onset), distractors (code + span), response points, all turns with times.
+- `meta`: pack, voices, templates, mixing params, TTS clip ids.
+
+`python -m silence.transcript data/train/episodes/tr_000000.json` prints an episode as a timed
+script.
 
 ## Layout
 
 ```
-packs/packs.jsonl          LLM content packs (+ rejects.jsonl with reasons, smoke.jsonl)
-patches/                   moshi-finetune-audio-mask.patch (apply to the trainer checkout)
-silence/phrasebank.py      instruction / cue / distractor phrasings, split train vs test
-silence/splits.py          what each test suite holds out (one axis at a time)
-silence/voices.py          voice pools: pocket (default), kyutai, espeak
-silence/specs.py           episode builders: B1 timed hold, B2 side conversation,
-                           B3 hear-me-out, ordinary, decoys, test-only conditions
-silence/tts.py             TTS backends (pocket | kyutai | espeak) with word timestamps + clip cache
+silence/phrasebank.py      instruction / cue / ack phrasings, train vs test lists
+silence/splits.py          which axis each test suite holds out
+silence/voices.py          voice pools (Pocket TTS: 16 train, 4 test, `michael` for Moshi)
+silence/specs.py           episode builders, TRAIN_MIX, timing
+silence/tts.py             TTS backends (pocket | kyutai | espeak) + clip cache
 silence/assemble.py        timeline -> stereo wav + {alignments, events, meta} json
 silence/build.py           CLI: specs -> TTS -> episodes + manifest
-silence/check.py           checks via moshi-finetune's own Interleaver, plots, index.html
-silence/build_dev.py       dev set (train distribution, unseen and overlap-screened packs)
-silence/check_overlap.py   train vs held-out overlap audit
-silence/make_splits.py     nested 1h/10h/100h subsets + data ledger + exposure math
+silence/check.py           checks via moshi-finetune's own Interleaver (--plots: plots + index.html)
+silence/transcript.py      episodes as timed transcripts
 silence/gen_packs.py       LLM content packs (Anthropic API) + schema / speakability filters
-silence/transcript.py      print built episodes as timed transcripts
-silence/list_kyutai_voices.py, calibrate_offset.py   GPU-box setup helpers
+silence/make_splits.py     nested 1 h / 10 h subsets + data ledger + exposure math
+silence/build_dev.py       dev set (train distribution, unseen and screened packs)
+silence/screen_packs.py    test packs minus any overlapping train / dev
+silence/check_overlap.py   train vs held-out overlap audit
+silence/make_configs.py    moshi-finetune yamls for the run matrix
+silence/list_kyutai_voices.py, calibrate_offset.py   only for the optional 1.6B Kyutai TTS
+scripts/gpu_bootstrap.sh   GPU box setup + smoke train
+patches/                   three moshi-finetune patches (see below)
+packs/                     generated packs (+ rejects, smoke test, log)
+demo/                      14 example episodes (one per type; wavs not in git)
 ```
 
-## Episode format
-
-`episodes/<id>.wav` is stereo 24 kHz: **left = Moshi, right = user + friend + noise**.
-`episodes/<id>.json` holds:
-
-- `alignments`: Moshi's words only, `[word, [start, end], "SPEAKER_MAIN"]`. This is the
-  only key the trainer reads.
-- `events`: eval labels: `instr_end`, `hold`, `release` (kind, reference time, Moshi
-  onset), `distractors` (code + time span), `response_points`, all turns with times.
-- `meta`: pack, voices, templates, mixing params, TTS clip ids (for the ledger).
-
-## Training mix (by episode count)
-
-| B1 timed hold | B2 side conversation | B3 hear me out | Ordinary |
-|---|---|---|---|
-| 15% (11 std / 2 early answer / 2 rescind) | 25% | 20% (16 std / 2 early / 2 rescind) | 40% (30 normal, ⅓ with mid-turn pauses / 10 decoys) |
-
-## Setup (CPU is enough)
+## Setup (data generation runs on a CPU)
 
 ```
 uv venv && source .venv/bin/activate
@@ -51,70 +72,99 @@ uv pip install -r requirements.txt
 # Pocket TTS weights (ungated repo; needs Hugging Face access once):
 hf download kyutai/pocket-tts-without-voice-cloning --include "languages/english_2026-09/*" --local-dir models/pocket-tts
 cp .env.example .env    # put your ANTHROPIC_API_KEY here (gitignored)
-# for check.py only: a moshi-finetune checkout
+# for check.py: a moshi-finetune checkout next to this repo
 git clone https://github.com/kyutai-labs/moshi-finetune ../moshi-finetune
 ```
 
-TTS is Kyutai Pocket TTS (~100M params, runs on CPU) through the
-`pocket-tts-timestamped` fork, which gives word timestamps from the model's own
-attention, so no separate aligner is needed. Voices: 16 predefined voices for
-training, 4 held out for test, `michael` fixed for Moshi (see `silence/voices.py`).
+TTS is Kyutai Pocket TTS (~100M params, CPU) through the `pocket-tts-timestamped` fork, which
+gives word timestamps from the model's own attention. It runs at ~12× realtime with 4 workers
+on an Apple Silicon CPU: 10 h of episodes in ~40 min. `--tts espeak` is a robotic fallback
+(Linux only). `--tts kyutai` uses the 1.6B Kyutai TTS on a GPU; calibrate its word offset
+first with `python -m silence.calibrate_offset`.
 
-## Status (2026-10-14)
+## Building the data
 
-- Demo: 14 episodes in `demo/` (one per type plus B1 double hold, phone call, minute-scale
-  B1), 14/14 pass `check.py`. `build.py` no longer has a `demo` split.
-- Packs: 2,500 in `packs/packs.jsonl` (500 per family; 620 rejected).
-- Train set: `data/train`, 1,150 episodes (10.49 h), all pass `check.py`;
-  `train_1h.jsonl` = 113 episodes, `train_10h.jsonl` = 1,101 episodes (first-K prefixes).
-  Pocket TTS runs at ~12× realtime with 4 workers on an Apple Silicon CPU (~40 min for 10 h).
-- Dev set: `data/dev`, 200 episodes (1.97 h), `dev_80.jsonl` ⊂ `dev_200.jsonl`, balanced
-  per family, with no pack or script overlap with train (`silence.check_overlap`).
-- Not yet: test suites, training configs, eval harness, human test set, runs.
-
-## Full data
+Only one process should write to `data/` at a time.
 
 ```
+# 1. content packs (Anthropic API; rerun with the same --out to top families up)
 python -m silence.gen_packs --out packs/packs.jsonl --per-family 500 --rejects packs/rejects.jsonl
-python -m silence.build train --packs packs/packs.jsonl --n 1150 --out data/train     # 10.5 h
+
+# 2. train: 1,150 episodes = 10.5 h; 1 h / 10 h prefixes + ledger
+python -m silence.build train --packs packs/packs.jsonl --n 1150 --out data/train
+python -m silence.make_splits data/train --hours 1 10
+
+# 3. dev: 200 episodes from train-split packs unused by data/train and screened for overlap
+python -m silence.build_dev --exclude data/train --out data/dev
+
+# 4. test suites: from test packs screened against train + dev
+python -m silence.screen_packs --split test --against data/train data/dev --out packs/packs_test_screened.jsonl
 for s in test_script test_word test_voice test_distract test_cond test_ordinary test_all; do
-  python -m silence.build $s --packs packs/packs.jsonl --n 90 --out data/$s; done
-python -m silence.make_splits data/train --hours 1 10 --abs
-python -m silence.check data/train --finetune ../moshi-finetune
-python -m silence.build_dev --exclude data/train --out data/dev          # 200 dev episodes
-python -m silence.check_overlap data/train data/dev
-python -m silence.transcript data/train/episodes/tr_000000.json     # read an episode
+  python -m silence.build $s --packs packs/packs_test_screened.jsonl --n 90 --out data/$s; done
+
+# 5. checks
+python -m silence.check data/train --finetune ../moshi-finetune          # --plots for index.html
+python -m silence.check_overlap data/train data/dev data/test_*
 ```
 
-Then point moshi-finetune's `data.train_data` at `data/train/train_1h.jsonl` (etc.).
-Rerunning `gen_packs` with the same `--out` tops each family up to `--per-family`.
-`--tts kyutai` switches to the 1.6B Kyutai TTS on a GPU (calibrate its word offset first
-with `python -m silence.calibrate_offset`). `--tts espeak` is a robotic offline fallback.
+### Test suites
 
-## Training plan
+Each suite changes one axis versus training:
 
-LoRA r=64 on `kyutai/moshiko-pytorch-bf16` (one pinned revision), batch 16, 60 s windows
-(one episode each), AdamW + OneCycle, `mask_main_speech_audio: true` from
-`patches/moshi-finetune-audio-mask.patch` (no audio loss on Moshi's own TTS speech, so the
-synthetic voice can't pull Moshi's voice). Epochs are fixed per phase, and
-`max_steps = ceil(epochs × episodes / 16)`.
+| Suite | What's new |
+|---|---|
+| `test_script` | scripts |
+| `test_word` | scripts + the user's instruction / cue wording |
+| `test_voice` | scripts + user / friend voices |
+| `test_distract` | scripts + dense distractors + the friend saying "I'm back" |
+| `test_cond` | scripts + new waiting conditions (keyword release, phone call, minute-long holds) |
+| `test_ordinary` | scripts; ordinary questions and decoys only (regression) |
+| `test_all` | scripts + wording + voices |
 
-| Phase | Run | Data | LR | Epochs |
+All suites draw the same test packs in the same order, so comparisons between suites are
+paired.
+
+## Training (rented GPU)
+
+```
+rsync -a --exclude .venv --exclude models --exclude cache --exclude demo moshi-silence/ box:/workspace/moshi-silence/
+ssh box 'bash /workspace/moshi-silence/scripts/gpu_bootstrap.sh'
+```
+
+The bootstrap:
+1. clones moshi-finetune at upstream `2acc879f` and applies the three patches
+2. builds its environment from moshi-finetune's `uv.lock` (`pip install -e .` doesn't resolve
+   upstream)
+3. downloads the weights pinned at revision `2bfc9ae6`
+4. writes the configs
+5. runs a 6-step smoke train, which must produce two checkpoints, no NaN, and a logged text
+   dev loss
+
+The patches:
+
+| Patch | What it does |
+|---|---|
+| `moshi-finetune-audio-mask.patch` | `mask_main_speech_audio`: no audio loss while Moshi speaks, so the synthetic TTS voice can't pull Moshi's voice. The text loss is unchanged. |
+| `moshi-finetune-eval-reload.patch` | Upstream builds the finite eval loader once, so every evaluation after the first logs NaN. Builds a fresh one per evaluation, keeps the last partial batch, and logs text / audio dev loss separately. |
+| `moshi-finetune-text-tail.patch` | Text past the end of a short file was PAD and counted in the text loss (~46% of text frames at 1 h). Now excluded. |
+
+Run plan: fixed epochs, LoRA r=64, batch 16, 60 s windows, every checkpoint kept.
+
+| Phase | Runs | Data | Peak LR | Epochs |
 |---|---|---|---|---|
-| 0 | R0 | base model | — | — |
-| 1 | R1–R5 | 1 h | 2e-6, 1e-5, 5e-5, 2e-4, 5e-4 | 20, checkpoint and dev eval every epoch |
-| 2 | R6–R7 | 10 h | top 2 from phase 1 | E chosen from phase 1 |
+| 0 | `R0_devloss` | base model | 0 | — (dev loss only) |
+| 1 | R1–R5 | 1 h (113 episodes, 142 steps) | 2e-6, 1e-5, 5e-5, 2e-4, 5e-4 | 20, checkpoint + dev loss every epoch |
+| 2 | R6–R7 | 10 h (1,101 episodes) | top 2 from phase 1 | E chosen from phase 1 |
 
-Model selection uses a held-out dev set (train distribution); the test suites are only for
-the final evaluation. About 5–8 H100-hours of training. 100 h is on hold.
+The dev set is for choosing E, LRs and checkpoints. The test suites are run once, on the
+final checkpoints. That's roughly 7–10 H100-hours of training. Configs are written by
+`python -m silence.make_configs` (see its `--help`).
 
 ## Known gaps
 
-- `KyutaiTTS` (optional GPU backend) mirrors `TTSModel.simple_generate` but is untested.
-- Pocket TTS has 20 English voices plus Moshi's fixed `michael`, so the
-  voice-generalization test has only 4 unseen speakers.
-- Turn-gap distribution is a placeholder; fit it on DailyTalkContiguous timestamps.
-- Background noise is synthetic (pink / brown / filtered white); swap in real noise
-  clips split by file for the final runs.
-- Distractor lines are inserted from a lexicon, so side conversations can be a little
-  incoherent around them.
+- Pocket TTS has 20 English voices plus Moshi's fixed `michael`, so the voice test has only
+  4 unseen speakers.
+- Turn-gap timing is a placeholder distribution; background noise is synthetic.
+- The demo can't be rebuilt from the current code (its hand-written packs were removed).
+- Eval harness (generation with prefix forcing, VAD + ASR scoring) and the human-recorded
+  test set are still to do.

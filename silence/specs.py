@@ -31,8 +31,8 @@ from .voices import load_pool, pool_for
 BUDGET_DUR = 57.0
 
 # ------------------------------------------------------------------ timing samplers
-# Placeholder distributions. Replace turn_gap with the one fitted on DailyTalk
-# (scripts/fit_gaps.py) once HF is reachable.
+# Placeholder distributions. Replace turn_gap with one fitted on DailyTalkContiguous
+# turn gaps (no fitting script exists yet).
 
 # Ordinary between-turn silences are scaled up 1.5x (listening: the originals felt rushed).
 # Distractor pauses (D2a / D2b stalls, mid-turn pauses) and hold timing are not scaled.

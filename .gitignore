@@ -4,5 +4,7 @@ models/
 cache/
 data/
 demo/episodes/*.wav
+# generated on the GPU box by make_configs (absolute, machine-specific paths)
+configs/
 __pycache__/
 .DS_Store
