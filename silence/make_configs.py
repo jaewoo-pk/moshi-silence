@@ -62,7 +62,7 @@ batch_size: {batch}
 max_steps: {max_steps}
 gradient_checkpointing: true
 optim:
-  lr: {lr:.1e}
+  lr: {lr:.6e}
   weight_decay: 0.1
   pct_start: 0.05
 
@@ -115,7 +115,7 @@ def main():
         # evaluates the base model exactly (at the end of 2 no-op steps; nothing saved).
         name = "R0_devloss"
         (out / f"{name}.yaml").write_text(TEMPLATE.format(
-            name=name, note="base model dev loss (lr 0, no checkpoint)", epochs="—", max_steps=2,
+            name=name, note="base model dev loss (lr 0, no checkpoint)", epochs="-", max_steps=2,
             every=0, every_ep=0.0, lr=0.0, do_ckpt="false", run_dir=f"{a.runs.rstrip('/')}/{name}", **common))
         print(f"{out / name}.yaml  lr=0  2 no-op steps, dev loss at the end")
     for i, lr in enumerate(lrs):

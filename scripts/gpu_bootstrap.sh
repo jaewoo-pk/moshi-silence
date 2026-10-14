@@ -3,11 +3,16 @@
 # volume at /workspace, so a 4x pod mounting the same volume can train right away
 # (scripts/run_parallel.sh).
 #
-#   rsync -a --exclude .git --exclude .claude --exclude .venv --exclude models --exclude cache \
-#       --exclude demo moshi-silence/ box:/workspace/moshi-silence/   # code + patches + data/ (~6.2 GB)
+# On the pod first (RunPod images may lack rsync): apt-get update && apt-get install -y rsync
+# Then from the Mac: code from the branch worktree, data/ from the main checkout (no .env):
+#   rsync -a --exclude .git --exclude demo --exclude __pycache__ --exclude .DS_Store \
+#       ~/repo/moshi-silence/.claude/worktrees/docs-progress/ box:/workspace/moshi-silence/
+#   rsync -a --exclude .DS_Store ~/repo/moshi-silence/data/ box:/workspace/moshi-silence/data/  # ~6.2 GB
 #   ssh box 'bash /workspace/moshi-silence/scripts/gpu_bootstrap.sh'
+# `box` = an ssh config alias for the pod's exposed SSH port (or rsync -e "ssh -p PORT").
+# Re-syncing data/ later puts relative jsonl paths back; rerun this script afterwards.
 #
-# Needs: Linux + CUDA GPU, python3, git, curl; volume >= 150 GB (weights ~16 GB, data ~6 GB,
+# Needs: Linux + CUDA GPU, python3 (stdlib only), git, curl; volume >= 150 GB (weights ~16 GB, data ~6 GB,
 # env ~10 GB, phase-1 checkpoints ~41 GB = 105 x ~0.39 GB). Safe to rerun.
 set -euo pipefail
 
@@ -34,8 +39,10 @@ apply moshi-finetune-text-tail.patch "Past the end of the file the audio is zero
 # 0.2.4a1, sphn 0.1.12, torch 2.6.0, huggingface-hub 0.28.1).
 # uv, its managed Python and its cache all live on the volume, so the env survives moving the
 # volume to a new pod (1x for setup, then 4x for training); the home dir doesn't persist.
+# moshi-finetune only says requires-python >= 3.10, so uv would pick the newest Python (3.14),
+# for which torch 2.6.0 has no wheels: pin 3.12.
 export UV_INSTALL_DIR=$W/bin UV_PYTHON_INSTALL_DIR=$W/uv-python UV_CACHE_DIR=$W/uv-cache \
-       UV_PYTHON_PREFERENCE=only-managed PATH="$W/bin:$PATH"
+       UV_PYTHON_PREFERENCE=only-managed UV_PYTHON=3.12 UV_NO_MODIFY_PATH=1 PATH="$W/bin:$PATH"
 [ -x "$W/bin/uv" ] || curl -LsSf https://astral.sh/uv/install.sh | sh
 (cd "$MF" && uv sync --frozen)
 (cd "$MF" && uv pip freeze) > "$W/pip-freeze.txt"   # exact environment, for the report
@@ -69,8 +76,10 @@ rm -rf "$SMOKE"
 sed -e "s#^max_steps: .*#max_steps: 6#" -e "s#^eval_freq: .*#eval_freq: 3#" -e "s#^ckpt_freq: .*#ckpt_freq: 3#" \
     -e "s#^run_dir: .*#run_dir: $SMOKE#" "$REPO/configs/R3_1h_lr5e-05.yaml" > "$W/smoke.yaml"
 cd "$MF"
-"$PY/torchrun" --nproc-per-node 1 -m train "$W/smoke.yaml" 2>&1 | tee "$W/smoke.log"
-n_ckpt=$(find "$SMOKE/checkpoints" -maxdepth 1 -name 'checkpoint_*' 2>/dev/null | wc -l)
+# moshi-finetune reads CUDA_VISIBLE_DEVICES with no default (finetune/distributed.py), so set it.
+CUDA_VISIBLE_DEVICES=0 "$PY/torchrun" --nproc-per-node 1 -m train "$W/smoke.yaml" 2>&1 | tee "$W/smoke.log" \
+  || { echo "SMOKE FAIL: train.py exited non-zero (see $W/smoke.log)"; exit 1; }
+n_ckpt=$(find "$SMOKE/checkpoints" -maxdepth 1 -name 'checkpoint_*' 2>/dev/null | wc -l || true)
 if grep -qiw "nan" "$W/smoke.log"; then echo "SMOKE FAIL: NaN in the log"; exit 1; fi
 if [ "$n_ckpt" -lt 2 ]; then echo "SMOKE FAIL: $n_ckpt checkpoints (want 2)"; exit 1; fi
 if ! grep -q "text_eval_loss" "$W/smoke.log"; then echo "SMOKE FAIL: no text_eval_loss logged"; exit 1; fi

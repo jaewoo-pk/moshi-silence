@@ -45,8 +45,8 @@ or self-generated data. The brief, condensed:
 | Dev set `data/dev` | Done: 200 episodes / 1.97 h (`dev_80` ⊂ `dev_200`), all pass, no overlap with train |
 | Test suites `data/test_*` | Done: 7 × 90 = 630 episodes / 6.1 h, all pass check.py, no script overlap with train |
 | moshi-finetune patches | 3 patches, tested to stack on upstream main `2acc879f` |
-| Training configs + GPU bootstrap | Written, verified locally (YAML parses, patches stack); **not yet run on a GPU** |
-| Eval harness (`LMGen` driver) | **Not written.** Eval details still to be discussed with the user. |
+| Training configs + GPU bootstrap | Written; pre-launch review done 2026-10-14 (configs load with the real `TrainArgs`, patches apply to pristine upstream, data audited); **not yet run on a GPU** |
+| Eval harness | Details agreed with the user (see "Eval harness"). `eval_score.py` written and oracle-tested; `eval_gen.py` (GPU) and `eval_report.py` not written yet |
 | Human-recorded test set | Not started (the user records ~40 episodes later) |
 | Training runs, report, deliverable demo | Not started |
 | Demo listening pass | Not recorded anywhere; ask the user whether it happened |
@@ -59,11 +59,12 @@ or self-generated data. The brief, condensed:
   tooling, configs, bootstrap, patches, generated packs).
 - The main checkout's working copy holds the same pipeline code as uncommitted changes, plus
   the built `data/`.
-- To get one usable tree, in the main checkout: check the branch's files out over the working
-  copy. The working copy's versions are identical, verified file by file before the
-  snapshot, except two comment-only fixes made afterwards in `tts.py` / `specs.py`.
-- Upload that tree plus `data/` to the GPU box. Neither `master` nor the old working copy
-  alone has everything `scripts/gpu_bootstrap.sh` needs.
+- Neither `master` nor the main checkout's working copy has everything
+  `scripts/gpu_bootstrap.sh` needs (no `scripts/`, 1 of 3 patches, no `make_configs.py`).
+  **Upload the code from the worktree** (`.claude/worktrees/docs-progress`, which has no
+  `.env` and no `data/`) **and `data/` from the main checkout**: two rsyncs, commands in the
+  `scripts/gpu_bootstrap.sh` header. No git operation needed. (Checking the branch out in the
+  main checkout fails: the branch is already checked out in the worktree.)
 
 **Only one session at a time may write to `data/`.** Two sessions once extended `data/train`
 at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
@@ -71,24 +72,26 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
 ## Next steps, in order
 
 1. ~~Build and check the test suites~~ (done, see "Test suites").
-2. **Get one complete tree** (see Git above), then rent the GPU. **Agreed plan** (user,
-   2026-10-14):
+2. Rent the GPU. **Agreed plan** (user, 2026-10-14):
    - RunPod **Secure Cloud, on-demand** (never spot: `train.py` can't resume). ~$3/hr per
      H100 SXM.
    - Create a **network volume ≥ 150 GB** first, mounted at `/workspace`.
    - **1× H100 SXM pod for setup**, with SSH over exposed TCP so rsync works.
    - Then a **4× H100 SXM pod on the same volume** for the training burst.
    - Drop back to 1× (or stop) while waiting on harness work: idle 4× costs ~$12/hr.
-3. **On the 1× pod:** rsync the tree + `data/` (~6.2 GB; command in the
-   `scripts/gpu_bootstrap.sh` header), then `bash scripts/gpu_bootstrap.sh`. Everything (uv,
-   its Python, the env, weights, configs) lands on the volume. Note the measured s/step and
-   peak memory from `smoke.log` and update the compute table below. Stop the pod.
+3. **On the 1× pod:** `apt-get install -y rsync` on the pod, then the two rsyncs (worktree code,
+   main-checkout `data/`, ~6.2 GB; commands in the `scripts/gpu_bootstrap.sh` header), then
+   `bash scripts/gpu_bootstrap.sh`. Everything (uv, its Python 3.12, the env, weights,
+   configs) lands on the volume. Note the measured s/step and peak memory from `smoke.log`
+   and update the compute table below. Stop the pod.
 4. **On the 4× pod:** `nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml
    configs/R?_1h_*.yaml > /workspace/logs/parallel.log 2>&1 &`. That's one run per GPU,
-   with the next queued config starting as a GPU frees up: R1–R4 together, then R5 + R0.
-5. **Meanwhile write the eval harness** (see "Eval harness"). Agree the eval details with the
-   user first. Then: R0 generation eval on dev, phase-1 dev evals, then choose E and the top
-   2 LRs. After that R6–R7, test suites on the final checkpoints, listening log, report.
+   with the next queued config starting as a GPU frees up: R0–R3 start together, R4 takes
+   R0's GPU a few minutes later, R5 starts when the first of R1–R3 finishes.
+5. **Finish the eval harness** (`eval_gen.py`, `eval_report.py`; see "Eval harness"). Stop the
+   4× pod once phase 1 has trained; the checkpoints stay on the volume, and harness debugging
+   needs only 1×. Then: R0 generation eval on dev, phase-1 dev evals, then choose E and the
+   top 2 LRs. After that R6–R7, test suites on the final checkpoints, listening log, report.
 6. Human-recorded test set: label each episode with the same `events` schema.
 
 ## Environment on this Mac
@@ -429,7 +432,17 @@ The committed `index.html` points at wavs that only exist in the main checkout.
   network access to HF.
 - sphn skips unreadable wavs with only a log line (`on_error=log`). The smoke check warns on
   "error" lines.
-- PyYAML reads `2e-06` (no dot) as a string. make_configs writes `2.0e-06`.
+- PyYAML reads `2e-06` (no dot) as a string. make_configs writes `2.000000e-06` (`.6e`, so
+  phase-2 LRs keep full precision).
+- `finetune/distributed.py` reads `os.environ['CUDA_VISIBLE_DEVICES']` with no default, so a
+  torchrun without it set crashes with KeyError. The bootstrap smoke run and
+  `run_parallel.sh` both set it.
+- moshi-finetune says only `requires-python >= 3.10` and has no `.python-version`, so uv
+  picks the newest Python (3.14), for which torch 2.6.0 has no wheels. The bootstrap pins
+  `UV_PYTHON=3.12`.
+- The dev loss averages per-batch means, and 200 = 12 × 16 + 8, so the last 8 dev episodes
+  count about double (~4% of the weight). It's the same at every checkpoint, so comparisons
+  are unaffected; mention it if absolute dev-loss values are reported.
 
 **Loading a checkpoint for inference** (eval harness):
 `CheckpointInfo.from_hf_repo(repo, moshi_weights=…, mimi_weights=…, tokenizer=…,
@@ -471,16 +484,18 @@ Fixed for every run (`silence/make_configs.py`):
   and run; the stretched-holds ablation (×3 would break the 60 s cap); the 1,000 h stretch; a
   behavior-loss validation script; a second seed.
 
-**Compute.** Assumes ~15 s/step ≈ 240 steps per H100-hour; measure in the smoke run.
-- Phase 1 training: 710 steps ≈ 3.0 h.
-- Per-epoch dev loss on 200 episodes (13 forward batches every 7 steps) adds roughly +40–50%
-  to phase 1, so ≈ 4.3 h.
-- Phase 2: E=5 ≈ 2.9 h, E=10 ≈ 5.7 h (eval adds ~5% there).
-- Total ≈ 7–10 H100-hours ≈ $10–36 at $1.3–3.5/hr. Generation evals come on top. With setup,
-  smoke and evals, ~12–15 GPU-hours ≈ $35–45 at RunPod's ~$3/hr.
+**Compute.** Upstream's README measures ≈ 12k tokens/s on 1× H100, counting batch × seconds ×
+12.5 × 9 tokens per step: 16 × 60 × 12.5 × 9 = 108k → **≈ 9 s/step** (the earlier planning
+figure of 15 s/step was pessimistic). Measure in the smoke run.
+- Phase 1 training: 710 steps ≈ 1.8 h.
+- Per-epoch dev loss on 200 episodes (13 forward batches every 7 steps; forward only ≈ ⅓ of
+  a training step per batch) adds roughly +60%, so ≈ 2.9 h, ~35 min per run.
+- Phase 2: E=5 ≈ 0.9 h, E=10 ≈ 1.7 h per run (eval adds ~10% there).
+- Total ≈ 6–7 H100-hours of training. With setup, smoke and generation evals, ~10–12
+  GPU-hours ≈ $30–36 at RunPod's ~$3/hr.
 - **Wall-clock on 4× H100** (one run per GPU via `run_parallel.sh`; same GPU-hours):
-  phase 1 ≈ 1.7 h (R1–R4, then R5 + R0) instead of ~4.3 h on 1×. Phase 2 at E=10 ≈ 2.9 h
-  (R6 and R7 side by side, while the other 2 GPUs run generation evals) instead of ~5.7 h.
+  phase 1 ≈ 1.2 h (two run-lengths) instead of ~2.9 h on 1×. Phase 2 at E=10 ≈ 1.7 h
+  (R6 and R7 side by side, while the other 2 GPUs run generation evals).
   Don't split one run across GPUs: moshi-finetune's `batch_size` is per GPU, so that would
   change the recipe, and 142-step runs gain little.
 - Disk: phase 1 checkpoints ≈ 105 × 0.39 GB ≈ 41 GB.
@@ -490,9 +505,33 @@ Fixed for every run (`silence/make_configs.py`):
 and audio-hours seen. Report unique episodes, packs and TTS clips, and total / speech /
 hold-silence hours, separately (`ledger.json`).
 
-## Eval harness (not written; agree details with the user first)
+## Eval harness (details agreed 2026-10-14; `eval_score.py` written)
 
-Proposed so far:
+**Agreed decisions (user, 2026-10-14):**
+1. Timing from Silero VAD on Moshi's decoded audio; words from Moshi's own text stream for
+   dev sweeps. Whisper ASR only on final test evals and the listening log.
+2. 1 sample per episode for dev sweeps, 3 for final test evals. Same seed per episode across
+   models.
+3. LLM judge for resume appropriateness: test evals only, 1 sample (~2.5k calls ≈ $10; ask
+   before running).
+4. Generation on dev_80 every epoch in phase 1 if R0 shows ≤ 2 min per checkpoint, else every
+   2; dev_200 for the top candidates and in phase 2.
+5. Re-force the script between scored windows (per-frame forcing mask), so every hold is
+   scored, not just the first. Ordinary episodes: free-run after the first user turn.
+6. Thresholds as below (2.5 s ack grace; ≥ 1 s or > 3 words; 3 s windows; B1 tolerance
+   max(1.5 s, 0.2N)); report their sensitivity.
+
+**`silence/eval_score.py`** (done): free windows per episode, VAD segments, per-hold
+violation / outcome (on_time | late | silent) / latency / timer error / talking-through /
+distractor reactions, ordinary responses (episodes without holds only), barge-in into
+mid-turn pauses. B1 N = 3 s holds have no violation region (grace 2.5 s + tolerance 1.5 s
+> N), so `violated` is None there and only their timing counts. **Oracle test on dev_80**
+(ground-truth Moshi channel): 0% violations (n=58), 100% on time (n=63), cue latency median
+0.92 s, timer error median −0.11 s, 100% ordinary responses, 0 distractor reactions. Negative
+control (user channel scored as Moshi): 76% violations, 94% silent at release.
+`silero-vad` must be added to the GPU env for eval.
+
+Original proposal:
 - An offline driver around `moshi.models.lm.LMGen`, with **prefix forcing**: force Moshi's
   text + audio tokens to ground truth until `instr_end` (ordinary: until the first user turn
   ends), then free-run. This needs a small override of the sampled tokens for the first k

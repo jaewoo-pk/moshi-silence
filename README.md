@@ -14,7 +14,7 @@ decisions and status.
 | Train | `data/train`: 1,150 episodes / 10.49 h, all pass checks. `train_1h.jsonl` = 113 episodes / 1.01 h, `train_10h.jsonl` = 1,101 / 10.01 h (1 h ⊂ 10 h) |
 | Dev | `data/dev`: 200 episodes / 1.97 h, `dev_80` ⊂ `dev_200`, balanced per family, no pack or script overlap with train |
 | Test | `data/test_*`: 7 suites × 90 = 630 episodes / 6.1 h, all pass checks, no script overlap with train |
-| Training | Configs + GPU bootstrap ready, not yet run. Eval harness not written. |
+| Training | Configs + GPU bootstrap ready and reviewed, not yet run. Eval scorer written; GPU generation driver not yet. |
 
 ## Episodes
 
@@ -131,9 +131,12 @@ volume at `/workspace`. Set up on a 1× H100 pod, then train on a 4× H100 pod u
 volume.
 
 ```
-# 1x pod: upload code + data (~6.2 GB), install, smoke-test
-rsync -a --exclude .git --exclude .claude --exclude .venv --exclude models --exclude cache \
-    --exclude demo moshi-silence/ box:/workspace/moshi-silence/
+# 1x pod: install rsync on the pod, upload code (from the branch worktree) + data (~6.2 GB,
+# from the main checkout), install, smoke-test. `box` = ssh alias for the pod's exposed port.
+ssh box 'apt-get update && apt-get install -y rsync'
+rsync -a --exclude .git --exclude demo --exclude __pycache__ --exclude .DS_Store \
+    ~/repo/moshi-silence/.claude/worktrees/docs-progress/ box:/workspace/moshi-silence/
+rsync -a --exclude .DS_Store ~/repo/moshi-silence/data/ box:/workspace/moshi-silence/data/
 ssh box 'bash /workspace/moshi-silence/scripts/gpu_bootstrap.sh'
 
 # 4x pod, same volume: one run per GPU; the next config starts as a GPU frees up
@@ -148,7 +151,8 @@ tail -f /workspace/logs/parallel.log
 - refuses to start over a leftover `run_dir`, since an interrupted run can't resume (delete
   the `run_dir` to redo it)
 
-Phase 1 takes ~1.7 h on 4× instead of ~4.3 h on 1×, for the same GPU-hours.
+At upstream's measured ~12k tokens/s (≈ 9 s/step for 16 × 60 s), phase 1 takes ~1.2 h on 4×
+instead of ~2.9 h on 1×, for the same GPU-hours. The smoke run measures the real number.
 
 The bootstrap:
 1. clones moshi-finetune at upstream `2acc879f` and applies the three patches
