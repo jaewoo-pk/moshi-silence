@@ -63,15 +63,16 @@ training, 4 held out for test, `michael` fixed for Moshi (see `silence/voices.py
 - Demo: 14 episodes in `demo/` (one per type plus B1 double hold, phone call, minute-scale
   B1), 14/14 pass `check.py`. `build.py` no longer has a `demo` split.
 - Packs: 2,500 in `packs/packs.jsonl` (500 per family; 620 rejected).
-- 10 h train set (`data/train`, 1,000 episodes): building. Pocket TTS runs at ~12× realtime
-  with 4 workers on an Apple Silicon CPU, so about 40 min for 10 h.
+- Train set: `data/train`, 1,150 episodes (10.49 h), all pass `check.py`;
+  `train_1h.jsonl` = 113 episodes, `train_10h.jsonl` = 1,101 episodes (first-K prefixes).
+  Pocket TTS runs at ~12× realtime with 4 workers on an Apple Silicon CPU (~40 min for 10 h).
 - Not yet: test suites, dev set, training configs, eval harness, human test set, runs.
 
 ## Full data
 
 ```
 python -m silence.gen_packs --out packs/packs.jsonl --per-family 500 --rejects packs/rejects.jsonl
-python -m silence.build train --packs packs/packs.jsonl --n 1000 --out data/train     # 10 h
+python -m silence.build train --packs packs/packs.jsonl --n 1150 --out data/train     # 10.5 h
 for s in test_script test_word test_voice test_distract test_cond test_ordinary test_all; do
   python -m silence.build $s --packs packs/packs.jsonl --n 90 --out data/$s; done
 python -m silence.make_splits data/train --hours 1 10 --abs

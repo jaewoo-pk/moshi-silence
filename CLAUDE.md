@@ -76,11 +76,23 @@ unanswered question: 16), too long for a 60 s episode (B3: 106, B2: 99), and nea
 covers 10 h (1,000 episodes) with no pack reuse. 100 h would reuse packs ~5×, so top up first
 (rerunning with the same `--out` tops each family up to `--per-family`).
 
-**10 h train build: running** (started 4:34 pm, `build train --n 1000 --out data/train`,
-log at `data/build_train.log`). It's 7,661 TTS clips (~7.8 h of speech). Pocket TTS runs at
-**~11.9× realtime with 4 workers** on this Mac, about twice the earlier 6× estimate, so TTS
-should finish around 5:15 pm, with episode assembly after that. One "Maximum generation
-length reached without EOS" warning so far; check.py should catch it if it yields a bad clip.
+**Train set: built and checked.** `data/train` has 1,150 episodes (10.49 h), and **all 1,150
+pass check.py**.
+- `--n 1000` only reached 9.07 h, because episodes average 32.6 s, not ~36 s. It was extended
+  to `--n 1150` with the same seed. The first 1,000 episodes are byte-identical, since types and
+  packs come out in a fixed order and clips come from the cache.
+- `make_splits --hours 1 10` gives `train_1h.jsonl` = 113 episodes / 1.01 h and
+  `train_10h.jsonl` = 1,101 episodes / 10.01 h, the first-K prefixes, so 1 h ⊂ 10 h.
+- Logs: `data/build_train.log` (first 1,000: 7,661 clips, 37.6 min) and
+  `data/build_train_1150.log`.
+- Pocket TTS runs at **~12× realtime with 4 workers** on this Mac (up to 17× on the
+  extension), about twice the earlier 6× estimate.
+- No pack is used twice. Unused train packs are left over (B1 ~200, B2 ~190, B3 ~220,
+  ORD ~90, DECOY ~310), because packs were generated equally per family while the mix isn't.
+  These are the source for the dev set.
+- (2026-10-14) Two sessions extended `data/train` at the same moment (`--n 1110` and
+  `--n 1150`). The manifest was restored to 1,150 afterwards. **Only one session at a time
+  should write to `data/`.**
 
 **moshi-finetune patch: `patches/moshi-finetune-audio-mask.patch`.** It adds
 `mask_main_speech_audio` (plus `main_speech_mask_pre_sec` 0.08 / `main_speech_mask_post_sec`
@@ -112,7 +124,7 @@ recorded anywhere; ask the user whether it happened.
 **Not started:**
 - the 7 test suites (`--n 90` each); build after the train set finishes
 - `make_splits.py` on the 10 h build (1 h / 10 h jsonl files + ledger)
-- the dev set for per-epoch evaluation (see "Run matrix")
+- the dev set for per-epoch evaluation (see "Run matrix"): 200 episodes from unused train packs, first 80 for phase 1, all 200 for phase 2 and final selection (proposed; waiting on the user)
 - the training-config generator (yamls from `ledger.json`) and the GPU-box bootstrap
 - the eval harness (`LMGen` driver)
 - the human-recorded test set
@@ -121,9 +133,9 @@ recorded anywhere; ask the user whether it happened.
 
 ## Next steps, in order
 
-1. **When the train build finishes:** `python -m silence.check data/train --finetune
-   ../moshi-finetune`. Read 3–5 episodes with `silence.transcript` and listen to a couple.
-   Then run `make_splits.py data/train --hours 1 10 --abs`.
+1. ~~Check the train build, then `make_splits`~~ (done, 1,150/1,150 pass). Still worth doing:
+   read 3–5 episodes with `silence.transcript` and listen to a couple. On the GPU box, rerun
+   `make_splits.py data/train --hours 1 10 --abs` so the jsonl files hold absolute paths.
 2. **Build the 7 test suites** (`--n 90` each, ~630 episodes, so roughly 25–40 min of TTS
    at the measured throughput).
 3. **Build the dev set** (~100 train-distribution episodes, held out from training and from
