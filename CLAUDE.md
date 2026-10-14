@@ -89,6 +89,22 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
    configs/R?_1h_*.yaml > /workspace/logs/parallel.log 2>&1 &`. That's one run per GPU,
    with the next queued config starting as a GPU frees up: R0–R3 start together, R4 takes
    R0's GPU a few minutes later, R5 starts when the first of R1–R3 finishes.
+   **Driving RunPod from Claude Code** (set up 2026-10-14): RunPod's hosted MCP server is
+   registered at user scope (`claude mcp add --transport http runpod -s user
+   https://mcp.getrunpod.io/`, OAuth, no API key on disk). A session must start after that
+   and the user must authenticate once via `/mcp` → runpod → Authenticate. Plan for that
+   session:
+   - Check H100 SXM availability per data center; pick one where **4×** is available.
+   - Create the 150 GB Standard network volume there; deploy the 1× H100 SXM pod (Secure
+     Cloud, on-demand, "Runpod PyTorch" template, the volume at `/workspace`, TCP 22
+     exposed). Pass the user's SSH public key (`~/.ssh/id_ed25519.pub`) as the pod's
+     `PUBLIC_KEY` env var if it isn't in the account settings.
+   - Write a `box` alias into `~/.ssh/config` from the pod's "SSH over exposed TCP" IP and
+     port (not the `ssh.runpod.io` proxy: it can't rsync), run the uploads and the bootstrap
+     (step 3), watch `/workspace/bootstrap.log`, report smoke / selftest / bench results.
+   - **Before every billable action (volume, each pod) state the spec and price and get the
+     user's OK.** Terminate pods when their work is done; the volume keeps the state.
+   - The Mac's `rsync` is macOS openrsync (protocol 29); it works with the pod's GNU rsync.
 5. **Phase-1 generation evals** as soon as runs finish, on the same 4× pod:
    `nohup bash scripts/eval_dev.sh dev_80 R0 R1_1h_lr2e-06 R2_1h_lr1e-05 R3_1h_lr5e-05
    R4_1h_lr0.0002 R5_1h_lr0.0005 > /workspace/logs/eval_dev.log 2>&1 &`, then
