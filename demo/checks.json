@@ -76,8 +76,8 @@
   ],
   "cue_latency_s": 0.539,
   "min_turn_snr_db": 18.7,
-  "frames": 505,
-  "n_pad": 436,
+  "frames": 508,
+  "n_pad": 439,
   "n_epad": 23,
   "release_frame": 430,
   "epad_before_release": true,
@@ -175,8 +175,8 @@
    0.026
   ],
   "min_turn_snr_db": 15.7,
-  "frames": 178,
-  "n_pad": 122,
+  "frames": 179,
+  "n_pad": 123,
   "n_epad": 21,
   "fails": [],
   "ok": true
