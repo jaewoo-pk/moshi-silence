@@ -15,8 +15,13 @@ duration_sec 60, AdamW wd 0.1, OneCycle pct_start 0.05, first codebook x100, tex
 weight 0.5, mask_main_speech_audio on (needs patches/moshi-finetune-audio-mask.patch), seed 0,
 every checkpoint kept (moshi-finetune's default num_ckpt_keep=3 deletes older ones).
 
-Needs patches/moshi-finetune-eval-reload.patch for the per-epoch dev loss: unpatched,
-every evaluation after the first sees an exhausted loader and logs NaN.
+Phase 1 also writes R0_devloss.yaml: 2 steps at lr 0 with no checkpoint, i.e. the base
+model's dev loss (LoRA B starts at zero), the step-0 point of every loss curve.
+
+Needs all three patches in patches/ (gpu_bootstrap.sh applies them): audio-mask (the
+mask_main_speech_audio key; unpatched, the yaml fails to load), eval-reload (unpatched, every
+evaluation after the first logs NaN; also logs text / audio dev loss separately) and
+text-tail (no text loss on the zero-padded tail of each 60 s window).
 """
 import argparse
 import json
@@ -57,7 +62,7 @@ batch_size: {batch}
 max_steps: {max_steps}
 gradient_checkpointing: true
 optim:
-  lr: {lr:g}
+  lr: {lr:.1e}
   weight_decay: 0.1
   pct_start: 0.05
 
@@ -65,7 +70,7 @@ seed: 0
 log_freq: 1
 eval_freq: {every}
 do_eval: true
-do_ckpt: true
+do_ckpt: {do_ckpt}
 ckpt_freq: {every}
 num_ckpt_keep: null
 save_adapters: true
@@ -103,14 +108,22 @@ def main():
     first = 1 if a.phase == 1 else 6
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
+    common = dict(n=n, batch=a.batch, train=a.train, eval=a.eval, moshi_dir=a.moshi_dir.rstrip("/"),
+                  mimi=a.mimi, tokenizer=a.tokenizer)
+    if a.phase == 1:
+        # R0's dev loss: LoRA B starts at zero and AdamW at lr 0 changes nothing, so this
+        # evaluates the base model exactly (at the end of 2 no-op steps; nothing saved).
+        name = "R0_devloss"
+        (out / f"{name}.yaml").write_text(TEMPLATE.format(
+            name=name, note="base model dev loss (lr 0, no checkpoint)", epochs="—", max_steps=2,
+            every=0, every_ep=0.0, lr=0.0, do_ckpt="false", run_dir=f"{a.runs.rstrip('/')}/{name}", **common))
+        print(f"{out / name}.yaml  lr=0  2 no-op steps, dev loss at the end")
     for i, lr in enumerate(lrs):
         name = f"R{first + i}_{data_tag}_lr{lr:g}"
         run_dir = f"{a.runs.rstrip('/')}/{name}"
         (out / f"{name}.yaml").write_text(TEMPLATE.format(
-            name=name, note=f"phase {a.phase}", n=n, epochs=epochs, max_steps=max_steps,
-            batch=a.batch, every=every, every_ep=every * a.batch / n, train=a.train, eval=a.eval,
-            moshi_dir=a.moshi_dir.rstrip("/"), mimi=a.mimi, tokenizer=a.tokenizer, lr=lr,
-            run_dir=run_dir))
+            name=name, note=f"phase {a.phase}", epochs=epochs, max_steps=max_steps,
+            every=every, every_ep=every * a.batch / n, lr=lr, do_ckpt="true", run_dir=run_dir, **common))
         steps = sorted(set(range(every, max_steps + 1, every)) | {max_steps})
         (out / f"{name}.epochs.json").write_text(json.dumps(
             {"episodes": n, "batch": a.batch, "epochs": epochs, "max_steps": max_steps,

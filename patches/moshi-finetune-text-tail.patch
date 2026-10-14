@@ -1,0 +1,13 @@
+--- a/finetune/data/interleaver.py
++++ b/finetune/data/interleaver.py
+@@ -324,6 +324,10 @@
+                 (0, self.num_audio_frames - text_tokens.shape[-1]),
+                 value=self.interleaver.zero_padding,
+             )
++            # Past the end of the file the audio is zero padding (no loss), but prepare_item
++            # filled the text with PAD, which the text loss would count: for short files in
++            # long windows that is a large share of trivially-predicted text frames.
++            text_tokens[..., this_num_audio_frames:] = self.interleaver.zero_padding
+ 
+             codes = torch.cat([text_tokens, audio_tokens], dim=1)
+             mask = None

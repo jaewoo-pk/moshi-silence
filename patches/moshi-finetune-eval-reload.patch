@@ -13,7 +13,7 @@
              instruct_tokenizer=interleaved_tokenizer,
              args=args.data,
              batch_size=args.batch_size,
-@@ -328,7 +330,7 @@
+@@ -328,13 +330,16 @@
              (args.eval_freq > 0 and state.step % args.eval_freq == 0) or is_last_step
          ):
              # write perplexity to state
@@ -22,6 +22,15 @@
  
              eval_logs = get_eval_logs(
                  state.step,
+                 avg_loss,
+                 state.this_eval_perplexity,
+                 state.this_eval_loss,
++                # text loss carries the hold / resume decisions; log it separately
++                state.this_text_loss,
++                state.this_audio_loss,
+             )
+ 
+             main_logger_info(eval_log_msg(eval_logs))
 --- a/finetune/data/data_loader.py
 +++ b/finetune/data/data_loader.py
 @@ -37,3 +37,7 @@

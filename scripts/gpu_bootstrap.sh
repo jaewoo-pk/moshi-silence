@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # One-time setup on the rented GPU box, then a 6-step smoke train.
 #
-#   rsync -a --exclude .venv --exclude models --exclude cache moshi-silence/ box:/workspace/moshi-silence/
+#   rsync -a --exclude .venv --exclude models --exclude cache --exclude demo \
+#       moshi-silence/ box:/workspace/moshi-silence/        # code + patches + data/ (~5 GB)
 #   ssh box 'bash /workspace/moshi-silence/scripts/gpu_bootstrap.sh'
 #
-# Needs: Linux + CUDA GPU (H100 80 GB planned), python >= 3.10 with pip, git, ~25 GB disk for
-# weights + ~50 GB for checkpoints. Idempotent: reruns skip finished steps.
+# Needs: Linux + CUDA GPU (H100 80 GB planned), python3, git, curl; ~20 GB disk for weights
+# and ~45 GB for phase-1 checkpoints (21 per run x ~0.39 GB x 5 runs). Safe to rerun.
 set -euo pipefail
 
 W=${W:-/workspace}
@@ -14,30 +15,33 @@ MF=$W/moshi-finetune
 MF_COMMIT=2acc879fe7c48f885a18f6cc9548bccb2674d87b      # upstream main the patches were made on
 MOSHI_REV=${MOSHI_REV:-2bfc9ae6e89079a5cc7ed2a68436010d91a3d289}  # kyutai/moshiko-pytorch-bf16, pinned 2026-10-14
 MOSHI_DIR=$W/moshiko
-# The weights repo has no config.json, so moshi builds Moshi 7B from the defaults in the
-# installed `moshi` package: pin it too (moshi-finetune's pyproject takes moshi's main, unpinned).
-MOSHI_PKG_COMMIT=${MOSHI_PKG_COMMIT:-e6a55d2722a65870ef52a6c9f6ecfc0e90f38362}  # kyutai-labs/moshi main, 2026-05-16
+PY=$MF/.venv/bin
 
-echo "== 1. moshi-finetune @ ${MF_COMMIT:0:7} + patches"
-if [ ! -d "$MF" ]; then
-  git clone https://github.com/kyutai-labs/moshi-finetune "$MF"
-  git -C "$MF" checkout -q "$MF_COMMIT"
-  git -C "$MF" apply "$REPO/patches/moshi-finetune-audio-mask.patch"
-  git -C "$MF" apply "$REPO/patches/moshi-finetune-eval-reload.patch"
-fi
-pip install -q -e "$MF"
-pip install -q --force-reinstall --no-deps \
-  "moshi @ git+https://github.com/kyutai-labs/moshi.git@$MOSHI_PKG_COMMIT#subdirectory=moshi"
-pip freeze > "$W/pip-freeze.txt"   # exact environment, for the report
+echo "== 1. moshi-finetune @ ${MF_COMMIT:0:7} + 3 patches, env from its uv.lock"
+[ -d "$MF" ] || git clone https://github.com/kyutai-labs/moshi-finetune "$MF"
+git -C "$MF" checkout -q "$MF_COMMIT"
+apply() {  # $1 = patch, $2 = a string the patched tree contains
+  if grep -rq -- "$2" "$MF/train.py" "$MF/finetune"; then echo "  $1: already applied"
+  else git -C "$MF" apply "$REPO/patches/$1" && echo "  $1: applied"; fi
+}
+apply moshi-finetune-audio-mask.patch mask_main_speech_audio
+apply moshi-finetune-eval-reload.patch make_eval_loader
+apply moshi-finetune-text-tail.patch "Past the end of the file the audio is zero padding"
+# pyproject pins sphn==0.1.12 but takes moshi from git main, which now needs sphn>=0.2, so a
+# plain `pip install -e .` can't resolve. uv.lock pins the tested set (moshi 061cc4c =
+# 0.2.4a1, sphn 0.1.12, torch 2.6.0, huggingface-hub 0.28.1).
+command -v uv > /dev/null || { curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH="$HOME/.local/bin:$PATH"; }
+(cd "$MF" && uv sync --frozen)
+(cd "$MF" && uv pip freeze) > "$W/pip-freeze.txt"   # exact environment, for the report
 
 echo "== 2. weights @ ${MOSHI_REV:0:7}"
-hf download kyutai/moshiko-pytorch-bf16 --revision "$MOSHI_REV" --local-dir "$MOSHI_DIR"
+"$PY/huggingface-cli" download kyutai/moshiko-pytorch-bf16 --revision "$MOSHI_REV" --local-dir "$MOSHI_DIR"
 echo "$MOSHI_REV" > "$MOSHI_DIR/REVISION"
 
-echo "== 3. absolute wav paths in the jsonls"
+echo "== 3. absolute wav paths in the jsonls (sphn also resolves relative ones; this is belt and braces)"
 cd "$REPO"
-python -m silence.make_splits data/train --hours 1 10 --abs > /dev/null
-python - <<'EOF'
+python3 -m silence.make_splits data/train --hours 1 10 --abs > /dev/null
+python3 - <<'EOF'
 import json
 from pathlib import Path
 for f in Path("data/dev").glob("dev_*.jsonl"):
@@ -48,8 +52,8 @@ for f in Path("data/dev").glob("dev_*.jsonl"):
     print(f"{f}: {len(rows)} episodes")
 EOF
 
-echo "== 4. phase-1 configs"
-python -m silence.make_configs --phase 1 --train "$REPO/data/train/train_1h.jsonl" \
+echo "== 4. phase-1 configs (+ R0_devloss: the base model's dev loss, no training)"
+python3 -m silence.make_configs --phase 1 --train "$REPO/data/train/train_1h.jsonl" \
   --eval "$REPO/data/dev/dev_200.jsonl" --moshi-dir "$MOSHI_DIR" --runs "$W/runs" --out "$REPO/configs"
 
 echo "== 5. smoke train: 6 steps of R3; dev loss + checkpoint at steps 3 and 6"
@@ -59,10 +63,13 @@ rm -rf "$SMOKE"
 sed -e "s#^max_steps: .*#max_steps: 6#" -e "s#^eval_freq: .*#eval_freq: 3#" -e "s#^ckpt_freq: .*#ckpt_freq: 3#" \
     -e "s#^run_dir: .*#run_dir: $SMOKE#" "$REPO/configs/R3_1h_lr5e-05.yaml" > "$W/smoke.yaml"
 cd "$MF"
-torchrun --nproc-per-node 1 -m train "$W/smoke.yaml" 2>&1 | tee "$W/smoke.log"
+"$PY/torchrun" --nproc-per-node 1 -m train "$W/smoke.yaml" 2>&1 | tee "$W/smoke.log"
 n_ckpt=$(find "$SMOKE/checkpoints" -maxdepth 1 -name 'checkpoint_*' 2>/dev/null | wc -l)
 if grep -qiw "nan" "$W/smoke.log"; then echo "SMOKE FAIL: NaN in the log"; exit 1; fi
 if [ "$n_ckpt" -lt 2 ]; then echo "SMOKE FAIL: $n_ckpt checkpoints (want 2)"; exit 1; fi
+if ! grep -q "text_eval_loss" "$W/smoke.log"; then echo "SMOKE FAIL: no text_eval_loss logged"; exit 1; fi
+n_err=$(grep -ci "error" "$W/smoke.log" || true)
+[ "$n_err" -eq 0 ] || echo "WARNING: $n_err lines mention 'error' (sphn skips unreadable wavs with only a log line)"
 echo "SMOKE OK ($n_ckpt checkpoints, no NaN). Peak memory and s/step are in $W/smoke.log."
-echo "Run R1..R5 one at a time (train.py can't resume; use an on-demand instance):"
-echo "  cd $MF && for c in $REPO/configs/R?_1h_*.yaml; do torchrun --nproc-per-node 1 -m train \$c; done"
+echo "Next (one run at a time; train.py can't resume, so use an on-demand instance; run_dir must not exist):"
+echo "  cd $MF && for c in $REPO/configs/R0_devloss.yaml $REPO/configs/R?_1h_*.yaml; do $PY/torchrun --nproc-per-node 1 -m train \$c; done"
