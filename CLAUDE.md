@@ -41,15 +41,24 @@ or self-generated data. The brief, condensed:
 | Piece | State |
 |---|---|
 | Generator (`silence/`) | Working. Demo 14/14 pass check.py. |
-| Content packs | Done: 2,500 (`packs/packs.jsonl`), 348 screened test packs |
+| Content packs | Done: 2,500 (`packs/packs.jsonl`), 348 screened test packs. **v2 (2026-10-15):** + 5,470 new train packs, reverse-screened against dev/test → `packs/packs_v2_screened.jsonl` = 7,664 packs (see "50 h train set") |
 | Train set `data/train` | Done: 1,150 episodes / 10.49 h, all pass check.py; `train_1h` = 113 eps, `train_10h` = 1,101 eps |
+| 50 h train set `data50/train50` (volume only) | **Done 2026-10-15 07:14 UTC**: 5,585 episodes / 51.24 h (12 check.py failures + 3 assembly drops removed), nested `train_1h` / `_10h` / `_25h` / `_50h` jsonls (abs paths) + `train_all.jsonl`; 17 GB. v2 mix, 3 TTS engines. Built on the CPUs of the EPAD-10h pods + the Mac; both pods terminated 07:14. Cost ≈ $30 (packs ≈ $20, Fish $9.39, ElevenLabs within plan). No model trained on it yet. Details: "50 h train set" below, `docs/training_record.md` §12, metadata `results/build50/` |
 | Dev set `data/dev` | Done: 200 episodes / 1.97 h (`dev_80` ⊂ `dev_200`), all pass, no overlap with train |
 | Test suites `data/test_*` | Done: 7 × 90 = 630 episodes / 6.1 h, all pass check.py, no script overlap with train |
 | moshi-finetune patches | 3 patches, tested to stack on upstream main `2acc879f` |
-| Training configs + GPU bootstrap | Written; pre-launch review done 2026-10-14 (configs load with the real `TrainArgs`, patches apply to pristine upstream, data audited); **not yet run on a GPU** |
-| Eval harness | `eval_gen.py` / `eval_score.py` / `eval_report.py` / `scripts/eval_dev.sh` built and CPU-tested (see "Eval harness"); not yet run with the 7B weights. Whisper + LLM judge for final tests not built |
+| Training configs + GPU bootstrap | Written; pre-launch review done 2026-10-14 (configs load with the real `TrainArgs`, patches apply to pristine upstream, data audited). First GPU attempt (2026-10-14, ~7:50 pm ET, wrong personal account, terminated) **failed at `uv sync`** (see "Traps": openai-whisper / pkg_resources). **Second attempt on the API-key account: bootstrap complete (2026-10-14, ~8:20 pm ET).** Env (two-step sync fix), weights, data, configs on volume `np7c8l94dh`; SMOKE OK (2 checkpoints, no NaN, both dev evals logged); eval selftest + R0 benchmark OK. Setup pod terminated |
+| GPU account | **Use the RunPod API-key account, never the user's personal one** (see step 2). Current resources there (2026-10-15 07:15 UTC): volume `np7c8l94dh` (`moshi-silence`, **250 GB** Standard, US-NE-1; 139 GB used at 06:10 UTC, plus since then the 17 GB 50 h set, its clip cache and the R20/R21 checkpoints — measure with `du` before the next run); **no pods running.** Phase 2 ran on 4× pod `sq9r1dzsa8l6rc` (02:33–04:08 UTC, ≈ $25, terminated); its 84 checkpoints are on the volume (`results/phase2/setup/checkpoints_manifest.txt`). Earlier: 4× pod `z77njns1kqy38r` ran phase 1 (00:20–01:52 UTC, ≈ $25) and is terminated; setup pod `ldkqt7xnpy9pxe` terminated. The volume holds all 126 phase-1 LoRA checkpoints (`results/phase1/setup/checkpoints_manifest.txt`: sizes + sha256) and all eval outputs. The volume holds ~32 GB (env, weights, data, configs, `runs/_smoke`, `eval/_bench`). The personal-account pod and volume are deleted |
+| Eval harness | `eval_gen.py` / `eval_score.py` / `eval_report.py` / `scripts/eval_dev.sh` built and CPU-tested; **on the 7B (H100, 2026-10-14): selftest passes (100% identical input columns), R0 benchmark ran** (see "Eval harness"). Whisper + LLM judge for final tests not built |
 | Human-recorded test set | Not started (the user records ~40 episodes later) |
-| Training runs, report, deliverable demo | Not started |
+| Phase 1 (1 h LR sweep) | **Done 2026-10-15 01:50 UTC.** 6 LRs × 21 checkpoints, all scored on dev_80 (see `docs/training_record.md` §10). Behavior improves monotonically with LR (2e-4 best: plateau 11% violated / 74% on time / 98% answered vs base 86 / 40 / 43); dev loss ranks LRs ~backwards. Copied to `results/phase1/` |
+| Phase 2 (10 h) | **Done 2026-10-15 04:07 UTC** (user's choice: all four LRs 2e-5 / 5e-5 / 2e-4 / 5e-4 at 10 h, E = 5, checkpoints every ¼ epoch). Best 10 h LR is 2e-5–5e-5 (plateau score 0.84–0.85); 2e-4 slightly worse; 5e-4 collapses into a silent model. 10 h holds silence better (96–98%) but doesn't speak again better (66–74%) than 1 h. Plateau ≈ 70 optimizer steps at both sizes. Timed holds still unlearned. Results in `results/phase2/`, `docs/training_record.md` §10 |
+| Live chat | Chat pod `vc42i3dtvzv7s5` (05:25–~06:30 UTC 2026-10-15, 1× H100, ≈ $4.30) **terminated at the user's request** (ssh alias `chat` removed). It had slot A = 10 h 2e-5 ep 4.2 (`R8_10h_lr2e-05/checkpoint_000289`), slot B = 1 h 5e-5 EPAD×10 ep 5.9 (`R17_1h_lr5e-05_epad10/checkpoint_000042`). (Earlier chat pod `ywpfqsbqerh53c` ran 02:40–03:07, ≈ $1.80.) To restart: create a 1× H100 pod on the volume, add ssh alias `chat`, run `python -m silence.chat_gui`, press Load in both slots (the GUI writes `/root/chat.sh` + `load.sh`). `/root/chat.sh <port> <ckpt dir|base>` runs `moshi.server` (env on the volume, `--lora-weight` + `--config-path`) on 127.0.0.1:8998 (slot A) / 8999 (slot B); `/root/load.sh` swaps a slot. The GUI keeps the tunnel. Cheaper GPUs in US-NE-1 are Blackwell, which the torch 2.6 env can't run; a fresh moshi 0.2.13 install (supports LoRA) would work anywhere. The Mac (M5, 24 GB) would need 4-bit MLX (`moshi_mlx`); not pursued. |
+| Disk incident (2026-10-15 04:54 UTC) | The 150 GB volume filled up (checkpoints alone were 104 GB; ~0.37 GB each) while the EPAD sweep saved step 133: all four runs crashed at step 132–133 of 142, keeping 18 complete checkpoints each (epochs 1–17.8; the partial `checkpoint_000133` temp dirs were deleted). Freed uv-cache (7.6 GB) + `runs/_smoke`; **volume grown to 250 GB** (user's suggestion, ~$0.07/GB-month). **Check free space before launching runs**: `du -sh /workspace/*` (df shows the whole cluster, not our quota) vs the volume size |
+| Silence-bias finding + EPAD sweep | The training signal is silence-heavy by construction: ~90% of text frames are PAD, the "start talking" frame (EPAD) is 0.6% of frames and ~0.6% of the text-loss weight (it shares text_padding_weight 0.5 with PAD), and the audio loss covers only Moshi's silent frames (speech audio masked). **EPAD sweep done** (pod `7f5yuy4acmhxzp`, 04:19–05:16 UTC, ≈ $15, terminated): R16–R19 = 1 h, lr 5e-5, EPAD ×3/×10/×30/×100, baseline R3; runs truncated at epoch 17.8 by the disk incident. At the plateau EPAD trades silence for speaking (score flat ≈ 0.80); mid-training (ep 4–9) timed-hold re-asks reach 60–80% but decay later; best balanced checkpoint ×10 ep 6 (0.86: 81% silent / 91% speaks / 61% timed re-ask). Next: moderate EPAD with a shorter schedule or on 10 h. Results in `results/epad/` (incl. `analysis/epad_sweep.png`), `docs/training_record.md` §10. |
+| EPAD at 10 h | **Done 2026-10-15** (training 05:33–06:49, dev_80 evals until 07:12 UTC) on two 1× H100 pods, `086j0wex48cmlp` (R20_10h_lr5e-05_epad3, EPAD ×3) and `xk9kzxl2eev9of` (R21_10h_lr5e-05_epad10, ×10); 10 h, lr 5e-5, 5 epochs, ckpt every 17 steps; baseline R9. Both pods terminated 07:14 UTC (ssh aliases `tr3` / `tr10` removed); ≈ 1.7 h × 2 × $3.99 ≈ $13.4. Plateau score (dev_80) 0.87 (×3) / 0.88 (×10) vs 0.85 for R9; ×10 speaks 94% / silent 81% / timed re-ask 73%; best ckpts R20 and R21 `checkpoint_000153` (ep 2.2) at 0.91, within noise: confirm on dev_200. Lost silence is in timed holds (mutter reactions up to 53%). Results: `results/epad10h/summary.md`. Their CPUs also built the 50 h set (≈ 8% training slowdown) |
+| Next decisions (user) | (1) checkpoint-selection rule (proposed: equal-weight mean of 1−violated, on time, ordinary answered, on dev_200; ties → earlier epoch); (2) whether to run 5e-4 to bracket the LR; (3) phase-2 LRs and E. Then dev_200 for the candidates (needs a pod) |
+| Report, deliverable demo | Not started |
 | Demo listening pass | Not recorded anywhere; ask the user whether it happened |
 
 **Git:**
@@ -73,39 +82,61 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
 ## Next steps, in order
 
 1. ~~Build and check the test suites~~ (done, see "Test suites").
-2. Rent the GPU. **Agreed plan** (user, 2026-10-14):
-   - RunPod **Secure Cloud, on-demand** (never spot: `train.py` can't resume). ~$3/hr per
-     H100 SXM.
-   - Create a **network volume ≥ 150 GB** first, mounted at `/workspace`.
+2. ~~Rent the GPU~~ (volume + setup done 2026-10-14; the 4× pod is next, step 4). **Agreed plan** (user, 2026-10-14):
+   - RunPod **Secure Cloud, on-demand** (never spot: `train.py` can't resume). **$3.99/hr per
+     H100 SXM** (live catalog price, 2026-10-14; the earlier ~$3 was a guess), so 4× = $15.96/hr.
+   - Create a **network volume ≥ 150 GB** first, mounted at `/workspace` (Standard, ~$0.07/GB
+     per month). Volume `np7c8l94dh` is now 250 GB (≈ $0.58/day).
    - **1× H100 SXM pod for setup**, with SSH over exposed TCP so rsync works.
    - Then a **4× H100 SXM pod on the same volume** for the training burst and the phase-1
      generation evals.
-   - Terminate each pod as soon as its work is done (idle 4× costs ~$12/hr); everything that
+   - Terminate each pod as soon as its work is done (idle 4× costs ~$16/hr); everything that
      matters is on the volume.
 
-   **Driving RunPod from Claude Code** (set up 2026-10-14): RunPod's hosted MCP server is
-   registered at user scope (`claude mcp add --transport http runpod -s user
-   https://mcp.getrunpod.io/`, OAuth, no API key on disk). A session must start after that
-   and the user must authenticate once via `/mcp` → runpod → Authenticate. Plan for that
-   session:
-   - Check H100 SXM availability per data center; pick one where **4×** is available.
-   - Create the 150 GB Standard network volume there; deploy the 1× H100 SXM pod (Secure
-     Cloud, on-demand, "Runpod PyTorch" template, the volume at `/workspace`, TCP 22
-     exposed). Pass the user's SSH public key (`~/.ssh/id_ed25519.pub`) as the pod's
-     `PUBLIC_KEY` env var if it isn't in the account settings.
-   - Write a `box` alias into `~/.ssh/config` from the pod's "SSH over exposed TCP" IP and
-     port (not the `ssh.runpod.io` proxy: it can't rsync), run the uploads and the bootstrap
-     (step 3), watch `/workspace/bootstrap.log`, report smoke / selftest / bench results.
+   **Driving RunPod from Claude Code.** RunPod's hosted MCP server is registered at user scope.
+   **Since 2026-10-14 it authenticates with a RunPod API key** (`claude mcp add --transport
+   http runpod -s user https://mcp.getrunpod.io/ --header "Authorization: Bearer <key>"`; the
+   key sits in plain text in `~/.claude.json`). It was OAuth on the user's **personal**
+   account before. The user doesn't want to pay for this project personally: **all
+   pods and volumes go on the API-key account**. If `list-pods` shows the empty personal
+   account, or anything else looks off, stop and ask.
+   - **The API-key account is shared:** it already holds other people's pods and volumes
+     (e.g. SSH key `rfu@Ryans-MacBook-Pro`). **Never stop, modify or delete anything this
+     project didn't create**, and don't edit the account's SSH keys. The user's key
+     (`~/.ssh/id_ed25519.pub`) is **not** registered there, so pass it as the pod's
+     `PUBLIC_KEY` env var on create (startSsh alone would install only the account's keys).
+   - In the first session on that account, Claude Code's auto-mode classifier blocked a
+     RunPod catalog read ("Containment Escape") right after the old pod was terminated from
+     inside with its own key (below). The user may need a permission rule for `mcp__runpod__*`.
+   - Plan: check H100 SXM stock per data center with `count: 4`; pick one where **4×** is
+     available and that offers Standard network volumes (2026-10-14: US-NE-1, US-MO-1,
+     EUR-IS-3 qualified, all LOW). Create the 150 GB volume there; deploy the 1× pod
+     (Secure Cloud, on-demand, template `runpod-torch-v280` = image
+     `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`, `gpu.minCudaVersion` 12.8, the volume
+     at `/workspace`, ports `22/tcp` only, `startJupyter: false`).
+   - `ssh.direct` shows up in `get-pod` ~20 s after RUNNING. Write a `box` alias into
+     `~/.ssh/config` from it (not the `ssh.runpod.io` proxy: it can't rsync), run the uploads
+     and the bootstrap (step 3), watch `/workspace/bootstrap.log`, report smoke / selftest /
+     bench results. Remove the `box` alias when the pod is gone: its IP:port gets reused.
    - **Before every billable action (volume, each pod) state the spec and price and get the
      user's OK.** Terminate pods when their work is done; the volume keeps the state.
    - The Mac's `rsync` is macOS openrsync (protocol 29); it works with the pod's GNU rsync.
-3. **On the 1× pod:** `apt-get install -y rsync` on the pod, then the two rsyncs (worktree code,
-   main-checkout `data/`, ~6.2 GB; commands in the `scripts/gpu_bootstrap.sh` header), then
-   `bash scripts/gpu_bootstrap.sh`. Everything (uv, its Python 3.12, the env, weights,
+   - Inside a pod, `/proc/1/environ` has a pod-scoped `RUNPOD_API_KEY` and `RUNPOD_POD_ID`
+     (a non-interactive ssh shell doesn't export them), and the image has `runpodctl`.
+     `runpodctl remove pod $RUNPOD_POD_ID` from inside terminates the pod. This was used once
+     (2026-10-14), at the user's request, for a pod the MCP could no longer see.
+3. ~~**On the 1× pod**~~ (done 2026-10-14; results under "Compute" and "Eval harness"): the two rsyncs (worktree code, main-checkout `data/`, ~6.2 GB; commands in
+   the `scripts/gpu_bootstrap.sh` header). Use `rsync -rlpt`, not `-a`: the network volume
+   (MooseFS) refuses chown, so `-a` copies everything but exits 23. The image already has
+   rsync. Then `bash scripts/gpu_bootstrap.sh`. Steps 1–2 (env, weights) don't need `data/`
+   and can run while it uploads; step 3 rewrites jsonls in `data/`, so start the full script
+   only after the upload finishes (it's safe to rerun). Everything (uv, its Python 3.12, the env, weights,
    configs) lands on the volume. Its step 6 runs the eval selftest + a 40-episode R0
    generation benchmark. Note s/step and peak memory (`smoke.log`) and ms/step
    (`eval_bench.log`) and update the compute table below. Terminate the pod.
-4. **On the 4× pod:** `nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml
+4. **Next: on a 4× H100 SXM pod** (same volume, US-NE-1; $15.96/hr; get the user's OK; pass
+   `PUBLIC_KEY`; new `box` alias): `cd /workspace/moshi-silence && mkdir -p /workspace/logs &&
+   nohup bash scripts/run_parallel.sh configs/R0_devloss.yaml
    configs/R?_1h_*.yaml > /workspace/logs/parallel.log 2>&1 &`. That's one run per GPU,
    with the next queued config starting as a GPU frees up: R0–R3 start together, R4 takes
    R0's GPU a few minutes later, R5 starts when the first of R1–R3 finishes.
@@ -113,7 +144,13 @@ at the same moment (`--n 1110` / `--n 1150`); the manifest had to be restored.
    `nohup bash scripts/eval_dev.sh dev_80 R0 R1_1h_lr2e-06 R2_1h_lr1e-05 R3_1h_lr5e-05
    R4_1h_lr0.0002 R5_1h_lr0.0005 > /workspace/logs/eval_dev.log 2>&1 &`, then
    `eval_report` (see "Eval harness"). Stop the 4× pod when the evals are done. Then choose E
-   and the top 2 LRs; R6–R7, test suites on the final checkpoints, listening log, report.
+   and the top 2 LRs; phase 2 (R8–R9), test suites on the final checkpoints, listening log, report.
+   **Change (user, 2026-10-15 00:51 UTC):** R5 (5e-4) dropped before it started, because R3/R4
+   memorized the 1 h scripts (train text loss → 0.01; dev text loss best at epoch 3–4, then
+   doubling). Added R6_1h_lr5e-06 and R7_1h_lr2e-05 (same 20-epoch recipe; `make_configs
+   --first 6 --no-base --lrs 5e-6 2e-5`). Phase 2 is now R8–R9 (`make_configs` default
+   `--first 8`). The original scheduler was killed by hand (R1–R4 kept running);
+   `results/phase1/setup/phase1b.sh` runs R6/R7 and the dev_80 evals so no GPU idles.
 6. Human-recorded test set: label each episode with the same `events` schema.
 
 ## Environment on this Mac
@@ -215,7 +252,8 @@ friend + noise**), each with a JSON (`alignments`, `events`, `meta`) and a `.spe
   phrase / voice pools it used).
 - **Trap:** `build.py train` doesn't know about dev. Extending train past 1,150 with the same
   seed draws exactly the leftover packs dev took. Any future train build must skip the dev
-  packs (`meta.pack` / `pack2` in `data/dev`).
+  packs (`meta.pack` / `pack2` in `data/dev`): pass `build.py --exclude data/dev` (added
+  2026-10-15; reads `pack` / `pack2` from each set's `episodes.jsonl`).
 
 ### Test suites (`data/test_*`), reported once on final checkpoints
 
@@ -276,6 +314,80 @@ for s in test_script test_word test_voice test_distract test_cond test_ordinary 
   test_distract). A duration scan of all 14,581 distinct clips used in train/dev/test found
   no run-on clip: median 0.35 s/word, p99 0.70, max 1.76 (one-word acks, raw clips before
   gating).
+
+### 50 h train set (`data50/train50` on the volume), built 2026-10-15 ~06:05–07:20 UTC
+
+Goal: data scaling beyond 10 h, with more voice diversity; the user asked for it in under
+~1 h wall clock. It lives only on the volume (`/workspace/data50/train50`, clip cache
+`/workspace/cache50`), not in the Mac's `data/`. **Result:** 5,585 episodes / 51.24 h (35.9 h speech,
+13.2 h Moshi speech, 17.6 h hold silence), 5,799 packs, 40,921 clips; dropped 1 (failed Fish line) + 2
+(over 60 s) at assembly and 12 check.py failures (7 Moshi word-time offsets of ~−1 s, 6 of them
+B1_double: look into it before the next build). Subsets `train_{1,10,25,50}h.jsonl` + `train_all.jsonl`.
+Metadata copied to `results/build50/`. Numbers + costs: `docs/training_record.md` §12.
+
+- **Packs:** `packs/packs_v2.jsonl` = `packs.jsonl` (2,500) + 5,470 new Claude Sonnet 5.5
+  packs (`gen_packs --seed 1`, then `--seed 2`; `--test-frac 0 --per-family-json` B1 2120 /
+  B2 1580 / B3 1240 / ORD 2250 / DECOY 780; ≈ 822 calls, ≈ $20 est.; log
+  `packs/gen_packs_v2.log`, rejects `packs/rejects_v2.jsonl`). The seed-1 run crashed at call
+  578 on a StopIteration inside validation (now caught as "schema: malformed"); resumed.
+- **Reverse screen** (`silence/screen_train_packs.py`): drops a NEW train pack that contains a
+  line spoken in `data/dev` or any of the 7 test suites, or whose key text has Jaccard ≥ 0.5
+  with a test pack or a dev-used pack (same family). Dropped 306 (shared line + similar: B2
+  172 + 4, B1 15 + 75, B3 13 + 18, ORD 2 + 7), kept 5,164 → `packs/packs_v2_screened.jsonl`
+  (7,664 packs). Verified: 0 planned lines contain a held-out (test) phrase-bank wording.
+  The exact-line rule is strict on short lines ("Okay.").
+- **Mix** `--mix v2` = `specs.TRAIN_MIX_V2`: B1 25 (std 17, double 4, early 2, rescind 2), B2
+  20, B3 15 (std 11, early 2, rescind 2), ORD 30, DECOY 10; `specs.MUTTER_P` 0.7 (was 0.5).
+  Reason: timed holds were the unlearned behavior.
+- **Voices** `--tts multi` (`voices.MULTI`; engine drawn per speaker with `ENGINE_SHARES`
+  pocket .40 / el .15 / fish .45; Moshi is always Pocket `michael`):
+  - ElevenLabs Flash v2.5: 17 premade train voices; test: Lily, Matilda, Daniel, Bill. The
+    account's one cloned voice is excluded.
+  - Fish Audio s2-pro: 30 public-library train voices + 4 test, vetted by title / tags /
+    description as generic. The library has many voices named after or cloned from real
+    people or characters; all excluded.
+  - Pocket: 16 train / 4 test, as before. 63 train voices in all.
+  - The held-out EL / Fish voices aren't in any existing test suite.
+- **Code:**
+  - `tts.py`: `ElevenLabsTTS` / `FishTTS` on `_HTTPTTS`. Concurrency 3 / 5 (account limits, so
+    one process per engine); 429 / 5xx retried, Retry-After capped at 60 s; `FatalEngineError`
+    on 401/402/403 or 25 consecutive failures. Audio checks: reject RIFF / JSON / ID3 prefixes,
+    silent or < 0.1 s audio, a rate outside 0.12–1.0 s/word (≥ 3 words); up to 3 resamples.
+    0.15 s padding. Word times are synthetic (spread over `speech_span` by word length): only
+    human-turn onset / offset are used downstream, and only Moshi's words become text tokens.
+  - `MultiCache` routes `el:` / `fish:` voices to `<cache>/<engine>/`, key engine|voice-id|text
+    (Pocket keys unchanged). Atomic writes (uuid temp + `os.replace`, audio before json).
+    Hosted clips are 16-bit FLAC; `SILENCE_CACHE_FLAC=1` does the same for Pocket.
+  - API keys `ELEVENLABS_API_KEY` / `FISH_API_KEY` come from the env, `.env` or
+    `/dev/shm/silence_keys`. Hosted engines run from the Mac only; keys never leave it.
+  - `build.py`: `--tts multi`, `--mix v2`, `--exclude <sets>`, `--render-only <engines>
+    --shard i/n [--reverse]`, `--max-drop` (3%). Prints a plan hash (hash of the clip set);
+    every shard must print the same. The final (assembly) run renders nothing: missing hosted
+    clips drop their episodes (bounded by `--max-drop`), missing Pocket clips abort. In multi
+    mode an over-60 s episode gets only the B2 shrink, else it's dropped and its files deleted.
+  - `check.py --workers N`. `silence/filter_checked.py <dir>`: failing episodes → `rejected/`,
+    `manifest.jsonl` / `episodes.jsonl` rewritten in order (originals `*.all.jsonl`, so first-K
+    prefixes stay nested), `rejected.json`, `train_all.jsonl` (absolute paths).
+- **Plan:** `--n 5600`, seed 0, est ~50 h; 41,070 unique clips (Pocket ~24.1k ≈ 23.2 h speech,
+  Fish ~12.7k ≈ 10.3 h, EL ~4.2k ≈ 3.4 h). Mac (macOS libm) and Linux plans differ by 1 ulp in
+  25 timing floats; the clip sets are identical (verified). **Only one machine assembles.**
+- **Execution:** Pocket shards 0/3 on tr3, 1/3 on tr10, 2/3 on the Mac (into the old Pocket
+  cache via symlink, reusing the 10 h build's `michael` clips); the pods then take over the
+  Mac's shard from the far end (`--reverse`). EL + Fish from the Mac. A sync script uploads
+  Mac clips as FLAC to `/workspace/cache50` (`rsync --ignore-existing`, so a pod's own render
+  is never overwritten). Assembly + `check.py` + `filter_checked` on tr3. Shard 0 crashed once
+  at 06:41 (BrokenPipe after its launching ssh session was killed); relaunched detached
+  (`ssh -f -n` + `setsid`). A 4× RTX PRO 6000 CPU-burst pod was blocked by the permission
+  classifier (no CPU-only pods in US-NE-1).
+- **Measured:** Fish ~20× realtime at 5 concurrent (~0.8 s latency); EL Flash ~20× at 3
+  concurrent, ≈ 0.5 credit/char (Starter, 116,845 credits; plan ~209k chars ≈ 105k credits);
+  Fish $15 / 1M chars, plan ~622k chars ≈ $9 (credit $25.83). Pocket on the H100 pods' CPUs
+  (22-vCPU quota, nice 19, 18 workers) 15–21× per pod; Mac ~11×. It slowed R20/R21 training
+  ~8% (10.2–10.4k vs ~11.2k words/s). Mac → pod ~1.2 MB/s for one big file; clip sync ~25
+  clips/s.
+- **Caveat:** not "10 h but bigger": the recipe changed too (v2 mix, MUTTER_P, 3 engines / 63
+  train voices, new packs, dev exclusion), and its first-K prefixes are not the old
+  `train_1h` / `train_10h`. Durations are Pocket-fitted. See `docs/training_record.md` §12.
 
 ### Human test set (not started)
 
@@ -391,10 +503,18 @@ silence/make_splits.py     nested 1h ⊂ 10h jsonl subsets + ledger.json; `expos
 silence/build_dev.py       dev set: unused + screened train packs, balanced, dev_80 ⊂ dev_200
 silence/screen_packs.py    held-out pack file minus packs overlapping train/dev
 silence/check_overlap.py   train vs held-out audit (packs, near-dup scripts, shared lines, voices)
+silence/screen_train_packs.py  reverse screen: new train packs minus those overlapping dev / test (50 h build)
+silence/filter_checked.py  move check.py failures to rejected/, rewrite manifests (originals *.all.jsonl), train_all.jsonl
 silence/make_configs.py    moshi-finetune yamls per run (fixed epochs) + checkpoint -> epoch maps
 silence/eval_gen.py        GPU: batched generation with the script forced outside scored windows; selftest
 silence/eval_score.py      VAD segments + events -> per-hold / per-response behavior scores (+ oracle mode)
 silence/eval_report.py     bootstrap CIs, summary tables, per-epoch curves, threshold sensitivity
+silence/plot_training.py   loss curves / LR schedule / dev loss vs LR + training_summary from metrics.*.jsonl
+silence/demo_phase1.py     listening demo: base + every 1 h / 10 h run's lowest-dev-loss and final checkpoints on 9 dev episodes -> results/demo/index.html
+silence/chat_gui.py        local control panel (http://127.0.0.1:8770) for live chat with checkpoints on the chat pod: 2 slots, 9 representative models (CURATED, with good/bad notes, incl. R21 10 h EPAD ×10 ep 2.2 / ep 5.0; 'show all' for the rest), SSH tunnel, test scripts, notes -> results/chat/notes.jsonl
+silence/chat_scripts.py    13 live-chat test scripts in training-episode style (train wording / held-out / new conditions) -> chat_gui + results/chat/test_scripts.md
+silence/transcript_gen.py  readable transcripts: script merged with each model's generated words, holds, outcomes -> results/transcripts.md; --html results/transcripts.html = interactive viewer (9 representative models x 9 demo conversations, audio from demo_curated). Serve with `cd results && python3 -m http.server 8780`
+silence/plotstyle.py       shared plot style: runs colored by peak LR (ordinal blue ramp), base dashed
 silence/list_kyutai_voices.py, calibrate_offset.py   only for the optional 1.6B Kyutai TTS
 scripts/gpu_bootstrap.sh   GPU box: moshi-finetune + 3 patches (uv.lock env), pinned weights, configs, smoke
 scripts/run_parallel.sh    run configs one per GPU (own CUDA device + master port + log); skips .done, refuses leftover run_dirs
@@ -402,7 +522,18 @@ scripts/eval_dev.sh        generation eval of whole runs on dev_80 / dev_200, on
 patches/moshi-finetune-audio-mask.patch    mask_main_speech_audio (no audio loss on Moshi's TTS speech)
 patches/moshi-finetune-eval-reload.patch   fresh eval loader per eval + text/audio dev loss logged
 patches/moshi-finetune-text-tail.patch     no text loss on the zero-padded tail of a window
+patches/moshi-finetune-loss-weights.patch  (4th, 2026-10-15) optional text_epad_weight (EPAD's own weight) + audio_loss_weight; training only, dev loss unchanged
+scripts/ablation.sh        EPAD-weight sweep (1 h, lr 5e-5, EPAD x3/x10/x30/x100 = R16-R19)
+scripts/phase2.sh          phase 2 (10 h x 4 LRs)
+scripts/epad10h.sh         EPAD x3 / x10 at 10 h, lr 5e-5 (R20, R21); arg 3|10|both
 packs/                     packs.jsonl, packs_test_screened.jsonl, rejects.jsonl, smoke.jsonl, gen_packs.log
+packs/ (v2, 50 h build)    packs_v2.jsonl (7,970), packs_v2_screened.jsonl (7,664, the build's input), rejects_v2.jsonl, gen_packs_v2.log
+docs/training_record.md    write-up record of training (setup, hyperparameters, compute, cost, issues, results)
+results/phase1/, phase2/   configs, metrics, logs, setup logs, eval outputs, plots, analysis pulled back from the box (no checkpoints)
+results/demo/              combined listening demo (index.html + audio)
+results/demo_curated/      same 9 conversations, only the 9 representative models with good/bad notes (`demo_phase1 --curated`; audio needs eval_raw codes.npz, which `results/epad10h/setup/pull_run.sh` excludes: pull them by hand for new models)
+results/overview.md        one-page overview of every run, findings, failure modes, pointers
+results/epad/              EPAD sweep results (+ analysis/epad_sweep.png)
 demo/                      14 example episodes (json, plots, index.html, transcripts.txt; wavs gitignored)
 data/                      gitignored: train, dev, test_*, build logs
 ```
@@ -452,6 +583,19 @@ The committed `index.html` points at wavs that only exist in the main checkout.
 - `pip install -e .` can't resolve: pyproject pins `sphn==0.1.12` but takes moshi from git
   main, which now needs sphn ≥ 0.2. Use `uv sync --frozen`. uv.lock pins moshi `061cc4c`
   (0.2.4a1), torch 2.6.0, huggingface-hub 0.28.1 (it has `huggingface-cli`; there's no `hf`).
+- **`uv sync --frozen` fails on openai-whisper 20240930** (found on the GPU, 2026-10-14;
+  pulled in by `whisper_timestamped`). It's an sdist whose setup.py imports `pkg_resources`,
+  and build isolation installs the newest setuptools (84), which dropped it (setuptools < 81
+  still has it). These did **not** help under `uv sync --frozen` with uv 0.13.1:
+  `UV_BUILD_CONSTRAINT`, and `build-constraint-dependencies` in a user `uv.toml` or a project
+  `uv.toml`. A project `uv.toml` also replaces moshi-finetune's own `[tool.uv]` settings. The
+  bootstrap now syncs in two steps: `--no-install-package openai-whisper` (installs the
+  locked setuptools 78.1.0), then `--no-build-isolation-package openai-whisper`. **Verified on the GPU 2026-10-14**
+  (whisper builds; the env imports).
+- On the first (personal-account) run, the bootstrap logged "already applied" for all three patches on
+  a fresh clone (the second run's fresh clone logged "applied", as it should). The tree was checked afterwards: it's exactly `2acc879` + the 3 patches, each
+  applied once (compared with a pristine worktree). Cause unknown, maybe a stale log; if it
+  recurs, run the same check.
 - **The eval loader is built once but is a finite generator.** Every evaluation after the
   first sees zero batches and logs NaN. It also drops the last partial batch, and never logs
   the text/audio split. → eval-reload patch. Upstream has a `fix_eval` branch, not checked.
@@ -509,8 +653,9 @@ Fixed for every run (`silence/make_configs.py`):
 | Phase | Run | Data | Peak LR | Epochs | Steps | Checkpoints |
 |---|---|---|---|---|---|---|
 | 0 | R0_devloss | none (base model) | 0 | — | 2 no-op | dev loss only |
-| 1 | R1–R5 | train_1h (113 eps) | 2e-6, 1e-5, 5e-5, 2e-4, 5e-4 | 20 | 142 each | 21 each (every 7 steps ≈ 0.99 epoch, plus the last) |
-| 2 | R6–R7 | train_10h (1,101 eps) | top 2 from phase 1 | E (from phase 1) | ⌈E·1101/16⌉: 345 at E=5, 689 at E=10 | every 69 steps (≈ 1 epoch), plus the last |
+| 1 | R1–R4 | train_1h (113 eps) | 2e-6, 1e-5, 5e-5, 2e-4 | 20 | 142 each | 21 each (every 7 steps ≈ 0.99 epoch, plus the last) |
+| 1b | R6–R7 | train_1h | 5e-6, 2e-5 (added 2026-10-15) | 20 | 142 each | 21 each |
+| 2 | R8–R9 | train_10h (1,101 eps) | top 2 from phase 1 | E (from phase 1) | ⌈E·1101/16⌉: 345 at E=5, 689 at E=10 | every 69 steps (≈ 1 epoch), plus the last |
 
 - `max_steps = ceil(E · n / 16)`, with n counted from the jsonl. `configs/<run>.epochs.json`
   maps each checkpoint to its exact epoch.
@@ -523,19 +668,26 @@ Fixed for every run (`silence/make_configs.py`):
   and run; the stretched-holds ablation (×3 would break the 60 s cap); the 1,000 h stretch; a
   behavior-loss validation script; a second seed.
 
-**Compute.** Upstream's README measures ≈ 12k tokens/s on 1× H100, counting batch × seconds ×
-12.5 × 9 tokens per step: 16 × 60 × 12.5 × 9 = 108k → **≈ 9 s/step** (the earlier planning
-figure of 15 s/step was pessimistic). Measure in the smoke run.
-- Phase 1 training: 710 steps ≈ 1.8 h.
-- Per-epoch dev loss on 200 episodes (13 forward batches every 7 steps; forward only ≈ ⅓ of
-  a training step per batch) adds roughly +60%, so ≈ 2.9 h, ~35 min per run.
-- Phase 2: E=5 ≈ 0.9 h, E=10 ≈ 1.7 h per run (eval adds ~10% there).
-- Total ≈ 6–7 H100-hours of training. With setup, smoke and generation evals, ~10–12
-  GPU-hours ≈ $30–36 at RunPod's ~$3/hr.
-- **Wall-clock on 4× H100** (one run per GPU via `run_parallel.sh`; same GPU-hours):
-  phase 1 ≈ 1.2 h (two run-lengths) instead of ~2.9 h on 1×. Phase 2 at E=10 ≈ 1.7 h
-  (R6 and R7 side by side, while the other 2 GPUs run generation evals).
-  Don't split one run across GPUs: moshi-finetune's `batch_size` is per GPU, so that would
+**Compute. Measured on 1× H100 SXM, 2026-10-14** (bootstrap smoke run + eval benchmark; the
+plan had assumed upstream's ~12k tokens/s ≈ 9 s/step):
+- **Training: ~10 s/step** at batch 16 × 60 s (≈ 11.3k words/s steady); peak memory 29.1 GB.
+  Model load + first step ≈ 2.6 min per run.
+- **Dev loss on 200 episodes: ~47 s per evaluation.**
+- **Generation: 28 ms/step at batch 40**, i.e. 40 dev episodes in 35 s (67 s with load and
+  scoring) → dev_80 ≈ 70 s per checkpoint. Under the 2-minute bar, so phase-1 generation evals
+  run **every epoch**.
+- Phase 1, per 1 h run: 142 × 10 s ≈ 24 min + ~20 dev evals × 47 s ≈ 16 min + load ≈ **43 min**.
+  On 4×: R0–R3 start together, R4 takes R0's GPU after ~4 min, R5 starts when R1–R3 finish
+  (~43 min) → training done after **≈ 1.5 h** (4 × 1.5 = 6 GPU-h billed ≈ $24).
+- Every dev-loss eval has a saved LoRA checkpoint (`eval_freq` = `ckpt_freq` = 7, both also on the
+  last step; `save_adapters: true`, `num_ckpt_keep: null`), as the user asked (2026-10-14).
+- Phase-1 generation evals: ~105 checkpoints × ~75 s ≈ 2.2 GPU-h ≈ 35 min on 4 GPUs. So the
+  whole phase-1 burst is ≈ 2 h on the 4× pod ≈ **$32**.
+- Phase 2: E=5: 345 steps ≈ 58 min, E=10: 689 steps ≈ 1.9 h per run (+ ~1 epoch of dev evals,
+  ~47 s each). R6 and R7 side by side, while the other 2 GPUs run generation evals.
+- Setup run (1× pod, 23:58–00:18 UTC): ~20 min ≈ $1.35. The personal-account attempt before it
+  ran ~9 min ≈ $0.60.
+- Don't split one run across GPUs: moshi-finetune's `batch_size` is per GPU, so that would
   change the recipe, and 142-step runs gain little.
 - Disk: phase 1 checkpoints ≈ 105 × 0.39 GB ≈ 41 GB.
 
@@ -544,7 +696,7 @@ figure of 15 s/step was pessimistic). Measure in the smoke run.
 and audio-hours seen. Report unique episodes, packs and TTS clips, and total / speech /
 hold-silence hours, separately (`ledger.json`).
 
-## Eval harness (built 2026-10-14; CPU-tested, not yet run on the GPU)
+## Eval harness (built 2026-10-14; CPU-tested, then run on the 7B on an H100)
 
 **Agreed decisions (user, 2026-10-14):**
 1. Timing from Silero VAD on Moshi's decoded audio; words from Moshi's own text stream for
@@ -618,7 +770,15 @@ human turns.
 - LoRA swap: loads checkpoints exactly; `base` (lora_B = 0) reproduces the LoRA-free model
   token for token; multi-checkpoint layout + resume work. `eval_dev.sh` tested with a fake
   python.
-- Not yet run: anything with the 7B weights (memory, speed, bf16 selftest agreement).
+- **On the 7B, H100, bf16 (bootstrap step 6, 2026-10-14):** selftest shift 1 = 100% identical
+  input columns; text argmax agreement 99.7% (max|Δlogit| median 0.094, p99 0.232: bf16
+  streaming vs full forward); script text CE 0.491 streaming vs 0.490 full. Benchmark: 28 ms/step
+  at batch 40.
+- **R0 baseline on 40 dev episodes (base model, 1 sample, benchmark only, not the dev_80
+  result):** hold violated 82.8% (n=29), talking through 19.4%, resume on time 41.9% (no
+  onset 58.1%, n=31), words in hold mean 16.5, ordinary responded 42.9% (n=21), 33 interrupt
+  onsets; distractor triggered 67–100% across D1a–D3b. As expected, the base model doesn't
+  hold silence. Output: `/workspace/eval/_bench`.
 - Second review (2026-10-14, eval code): found the Mimi batch-memory blocker above; CUDA-graph
   buffer reuse, graph-safe RNG + per-batch `manual_seed`, KV capacity, the alignment, the
   checkpoint `config.json` keys and the LoRA key naming (world size 1: plain module names)
@@ -640,13 +800,30 @@ check (bf16 streaming vs full-sequence attention differ slightly).
 
 **Still to build:** Whisper ASR pass + LLM judge for the final test evals; the listening log.
 
+## Write-up record and plots
+
+- **`docs/training_record.md`** is the write-up-oriented record (pinned versions, hardware,
+  data and exposure, full hyperparameters, run matrix, eval protocol, measured compute,
+  timeline and spend, issues and fixes, observations, results). The user asked (2026-10-14) for
+  everything a submission write-up would need to be documented; keep it current as runs finish.
+- Raw artifacts go to `results/phase1/` (configs, per-run `args.yaml` + `metrics.*.jsonl`,
+  logs, setup logs + `pip-freeze.txt`, plots, eval summaries). Checkpoints stay on the volume.
+- `silence/plot_training.py`: loss curves (train per step + 1-epoch mean, dev per checkpoint;
+  total / text / audio), LR schedule, dev loss vs LR, `training_summary.{csv,md}`.
+  `silence/eval_report.py` behavior curves use the same style (`silence/plotstyle.py`: runs
+  colored by peak LR on one ordinal blue ramp, base model dashed gray; validated with the
+  dataviz ordinal check). Both start every curve at epoch 0 with the base model (LoRA B = 0).
+- Audio dev loss collapses within ~1 epoch (it's almost all on Moshi's silent frames, since
+  Moshi's speech audio is masked): treat text dev loss and behavior as the signal.
+
 ## Known gaps / TODO
 
 - Whether anyone listened to the demo isn't recorded; ask.
 - Turn gaps are a placeholder lognormal. Noise is synthetic.
 - The B1 fillers (D2c) come from each pack's `mutter`.
 - Pack reuse is silent when a family runs out (test_distract / test_cond, ~3 B2 scripts).
-- `build.py train` must learn to skip dev packs before any further train build.
+- Dev-pack exclusion now exists: `build.py --exclude data/dev` (2026-10-15). Use it (plus a
+  reverse screen like `screen_train_packs`) for any further train build.
 - `requirements.txt` misses `whisper_timestamped` (calibrate_offset.py), `silero-vad`
   (eval_score) and `huggingface_hub[cli]`; `sentencepiece` and `torch` come in only through moshi /
   pocket-tts. The GPU box doesn't use it (uv.lock there).
@@ -654,7 +831,8 @@ check (bf16 streaming vs full-sequence attention differ slightly).
   `configs/` is gitignored, since it's generated on the box with absolute paths.
 - The KyutaiTTS (1.6B, GPU) backend is optional and untested; calibrate its word offset first.
 - 100 h, if it comes back: ~78 h of speech ≈ 6.5 h CPU here, and it needs more packs (B2
-  first) and the dev-pack exclusion.
+  first); `--exclude` and the multi-engine sharding from the 50 h build cover the rest.
+- The 50 h set's held-out ElevenLabs / Fish voices aren't in any test suite yet.
 
 ## Working with the user (Jaewoo)
 
