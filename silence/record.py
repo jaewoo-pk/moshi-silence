@@ -235,7 +235,7 @@ class Mic:
     wav in real time instead (tests)."""
 
     def __init__(self, device=None, fake=None):
-        self.q = queue.Queue()
+        self.q, self.overflows = queue.Queue(), 0
         if fake:
             x, self.sr = sf.read(fake, dtype="float32", always_2d=True)
             x = x[:, -1]
@@ -254,9 +254,13 @@ class Mic:
         import sounddevice as sd
         info = sd.query_devices(device, "input")
         self.name, self.sr = info["name"], int(info["default_samplerate"])
+        def cb(d, frames, t, status):
+            if status.input_overflow:
+                self.overflows += 1
+            self.q.put(d[:, 0].copy())
+        # high latency: a GIL-busy UI thread must never make CoreAudio drop input blocks
         self.stream = sd.InputStream(device=device, channels=1, samplerate=self.sr, dtype="float32",
-                                     blocksize=int(self.sr * 0.02),
-                                     callback=lambda d, f, t, s: self.q.put(d[:, 0].copy()))
+                                     blocksize=int(self.sr * 0.02), latency="high", callback=cb)
         self.stream.start()
 
     def pull(self):
@@ -349,9 +353,10 @@ class Session:
         self.items = self.plan["items"]
         (out / "clips").mkdir(exist_ok=True)
         (out / "raw").mkdir(exist_ok=True)
+        self._done = {p.stem for p in (out / "clips").glob("*.wav")}
 
     def done(self, it):
-        return (self.out / "clips" / f"{it['key']}.wav").exists()
+        return it["key"] in self._done
 
     def n_takes(self, it):
         return len(list((self.out / "raw").glob(f"{it['key']}.*.wav")))
@@ -372,6 +377,7 @@ class Session:
         tmp = self.out / "clips" / f".{it['key']}.tmp.wav"
         sf.write(tmp, y, SR, subtype="PCM_16")
         os.replace(tmp, self.out / "clips" / f"{it['key']}.wav")
+        self._done.add(it["key"])
         (self.out / "clips" / f"{it['key']}.json").write_text(json.dumps(meta, ensure_ascii=False))
 
     def log(self, it, r, take, kept):
@@ -414,6 +420,7 @@ class UI:
         cols = shutil.get_terminal_size((100, 30)).columns
         self.width = min(100, cols) if cols >= 40 else 100
         self.silent_since, self.any_signal = time.time(), False
+        self.player = None
 
     # -- drawing
     def wrap(self, text, indent):
@@ -492,6 +499,7 @@ class UI:
     def start(self):
         self.review, self.msg = None, ""
         self.take, self.rec, self.rec_t0 = list(self.pre), True, time.time()
+        self.mic.overflows = 0
 
     def stop(self, cancel=False):
         self.rec = False
@@ -501,6 +509,9 @@ class UI:
         it = self.s.items[self.i]
         x = to_sr(np.concatenate(self.take) if self.take else np.zeros(1, np.float32), self.mic.sr)
         r = analyze(x, it)
+        if self.mic.overflows:
+            r["warn"].append(f"{self.mic.overflows} audio block(s) dropped by the mic stream: redo")
+            r["overflows"] = self.mic.overflows
         take = self.s.save_raw(it, x, r)
         if r["warn"]:
             self.review = (x, r, take)
@@ -522,18 +533,22 @@ class UI:
         self.i += 1
 
     def play(self):
-        import sounddevice as sd
+        """Play through macOS's afplay in its own process: playing from this busy Python loop
+        (sounddevice) starves the output stream and crackles, though the files are clean."""
+        if self.player and self.player.poll() is None:
+            self.player.terminate()
         if self.review:
-            sd.play(self.review[0], SR)
-        elif self.i < len(self.s.items) and self.s.done(self.s.items[self.i]):
-            x, _ = sf.read(self.s.out / "clips" / f"{self.s.items[self.i]['key']}.wav", dtype="float32")
-            sd.play(x, SR)
-        elif self.i > 0:
-            prev = self.s.items[self.i - 1]
-            if self.s.done(prev):
-                x, _ = sf.read(self.s.out / "clips" / f"{prev['key']}.wav", dtype="float32")
-                sd.play(x, SR)
-                self.msg = f"{DIM}playing {prev['id']}{RST}"
+            path = self.s.out / ".review.wav"
+            sf.write(path, self.review[0], SR, subtype="PCM_16")
+        else:
+            cur = self.s.items[self.i] if self.i < len(self.s.items) else None
+            prev = self.s.items[self.i - 1] if self.i > 0 else None
+            it = cur if cur and self.s.done(cur) else prev if prev and self.s.done(prev) else None
+            if it is None:
+                return
+            path = self.s.out / "clips" / f"{it['key']}.wav"
+            self.msg = f"{DIM}playing {it['id']}{RST}"
+        self.player = subprocess.Popen(["afplay", str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def key(self, ch):
         it = self.s.items[self.i] if self.i < len(self.s.items) else None
