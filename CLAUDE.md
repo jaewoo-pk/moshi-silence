@@ -50,7 +50,7 @@ or self-generated data. The brief, condensed:
 | Training configs + GPU bootstrap | Written; pre-launch review done 2026-10-14 (configs load with the real `TrainArgs`, patches apply to pristine upstream, data audited). First GPU attempt (2026-10-14, ~7:50 pm ET, wrong personal account, terminated) **failed at `uv sync`** (see "Traps": openai-whisper / pkg_resources). **Second attempt on the API-key account: bootstrap complete (2026-10-14, ~8:20 pm ET).** Env (two-step sync fix), weights, data, configs on volume `np7c8l94dh`; SMOKE OK (2 checkpoints, no NaN, both dev evals logged); eval selftest + R0 benchmark OK. Setup pod terminated |
 | GPU account | **Use the RunPod API-key account, never the user's personal one** (see step 2). Current resources there (2026-10-15 07:15 UTC): volume `np7c8l94dh` (`moshi-silence`, **250 GB** Standard, US-NE-1; 139 GB used at 06:10 UTC, plus since then the 17 GB 50 h set, its clip cache and the R20/R21 checkpoints — measure with `du` before the next run); **no pods running.** Phase 2 ran on 4× pod `sq9r1dzsa8l6rc` (02:33–04:08 UTC, ≈ $25, terminated); its 84 checkpoints are on the volume (`results/phase2/setup/checkpoints_manifest.txt`). Earlier: 4× pod `z77njns1kqy38r` ran phase 1 (00:20–01:52 UTC, ≈ $25) and is terminated; setup pod `ldkqt7xnpy9pxe` terminated. The volume holds all 126 phase-1 LoRA checkpoints (`results/phase1/setup/checkpoints_manifest.txt`: sizes + sha256) and all eval outputs. The volume holds ~32 GB (env, weights, data, configs, `runs/_smoke`, `eval/_bench`). The personal-account pod and volume are deleted |
 | Eval harness | `eval_gen.py` / `eval_score.py` / `eval_report.py` / `scripts/eval_dev.sh` built and CPU-tested; **on the 7B (H100, 2026-10-14): selftest passes (100% identical input columns), R0 benchmark ran** (see "Eval harness"). Whisper + LLM judge for final tests not built |
-| Human-recorded test set | **Prompter built 2026-10-15** (`silence/record.py`, solo, ~23 min); not recorded yet. Still to build: the `human` TTS backend + `test_human` builder (see "Human test set") |
+| Human-recorded test set | **Recorded + evaluated 2026-10-15.** Solo, speaker s01, 20 min (`silence/record.py`); `silence/human.py` builds test_human_tts (24 TTS twins) / test_human (24, verbatim) / test_human_free (16 holds, own-words instruction + cue), all pass check.py. Eval (3 samples, pod `odf3sua1adban4` 10:59–11:18 UTC ≈ $1.30, terminated): score TTS → human → own words: R21 ep 2.2 0.83 → 0.79 → 0.68 (16 holds: 0.81 / 0.75 / 0.68), R22 0.79 → 0.74 → 0.67, base 0.41 → 0.33 → 0.28. Human voice alone: −0.04 / −0.05 (CIs include 0); own words − TTS: R21 −0.14 [−0.25, −0.02]. Losses mostly in cue releases (R21 cue spoke 91% → 73% → 67%) and silence with own-words instructions. `results/human/summary.md`, `scripts/test_human.sh` |
 | Phase 1 (1 h LR sweep) | **Done 2026-10-15 01:50 UTC.** 6 LRs × 21 checkpoints, all scored on dev_80 (see `docs/training_record.md` §10). Behavior improves monotonically with LR (2e-4 best: plateau 11% violated / 74% on time / 98% answered vs base 86 / 40 / 43); dev loss ranks LRs ~backwards. Copied to `results/phase1/` |
 | Phase 2 (10 h) | **Done 2026-10-15 04:07 UTC** (user's choice: all four LRs 2e-5 / 5e-5 / 2e-4 / 5e-4 at 10 h, E = 5, checkpoints every ¼ epoch). Best 10 h LR is 2e-5–5e-5 (plateau score 0.84–0.85); 2e-4 slightly worse; 5e-4 collapses into a silent model. 10 h holds silence better (96–98%) but doesn't speak again better (66–74%) than 1 h. Plateau ≈ 70 optimizer steps at both sizes. Timed holds still unlearned. Results in `results/phase2/`, `docs/training_record.md` §10 |
 | Live chat | Chat pod `vc42i3dtvzv7s5` (05:25–~06:30 UTC 2026-10-15, 1× H100, ≈ $4.30) **terminated at the user's request** (ssh alias `chat` removed). It had slot A = 10 h 2e-5 ep 4.2 (`R8_10h_lr2e-05/checkpoint_000289`), slot B = 1 h 5e-5 EPAD×10 ep 5.9 (`R17_1h_lr5e-05_epad10/checkpoint_000042`). (Earlier chat pod `ywpfqsbqerh53c` ran 02:40–03:07, ≈ $1.80.) To restart: create a 1× H100 pod on the volume, add ssh alias `chat`, run `python -m silence.chat_gui`, press Load in both slots (the GUI writes `/root/chat.sh` + `load.sh`). `/root/chat.sh <port> <ckpt dir|base>` runs `moshi.server` (env on the volume, `--lora-weight` + `--config-path`) on 127.0.0.1:8998 (slot A) / 8999 (slot B); `/root/load.sh` swaps a slot. The GUI keeps the tunnel. Cheaper GPUs in US-NE-1 are Blackwell, which the torch 2.6 env can't run; a fresh moshi 0.2.13 install (supports LoRA) would work anywhere. The Mac (M5, 24 GB) would need 4-bit MLX (`moshi_mlx`); not pursued. |
@@ -390,7 +390,7 @@ Metadata copied to `results/build50/`. Numbers + costs: `docs/training_record.md
   train voices, new packs, dev exclusion), and its first-K prefixes are not the old
   `train_1h` / `train_10h`. Durations are Pocket-fitted. See `docs/training_record.md` §12.
 
-### Human test set (prompter built 2026-10-15; not recorded yet)
+### Human test set (recorded and evaluated 2026-10-15; results in `results/human/summary.md`)
 
 Plan (user, 2026-10-15): solo, ≤ 30 min. The user voices the USER side of held-out test
 episodes; the friend stays TTS. Recorded clips replace the TTS user clips and the episodes are
@@ -412,10 +412,14 @@ twin. Final models only, reported separately.
     span, peak, SNR); every take in `raw/`, log in `takes.jsonl`. Space toggles recording
     (0.5 s pre-roll); takes with warnings (quiet, clipped, SNR < 20 dB, cut-off) wait for
     redo or keep. `--status`, `--list-devices`, `--device`. Resumable.
-- Still to build: the `human` backend (clip lookup by key; block B by episode + anchor) and
-  a `test_human` build (A = verbatim copies, B = copies with own-words instruction / cue),
-  then check.py. Block B wording isn't transcribed (Whisper later if needed); the card
-  fixes N for B1.
+- `python -m silence.human`: `HumanCache` serves `human:s01` voices from the clips (block B by
+  `free:<key>` text), everything else from the Pocket cache; writes `data/test_human_tts` (the 24
+  TTS originals, copied), `data/test_human` (24, verbatim) and `data/test_human_free` (16 hold
+  episodes, own-words instruction + cue). Original episode ids, so noise / RIR are identical to
+  the TTS twin. Human episodes run ~7% longer (0.97–1.18×). Block B wording isn't transcribed
+  (Whisper later if needed); the card fixes N for B1.
+- Eval: `OUT=/workspace/eval/human bash scripts/test_human.sh base <ckpt> ...` (3 samples; the
+  suites are on the volume); scoring + paired bootstrap: `results/human/analysis/score_human.py`.
 - Limits: one voice; friend is TTS; no real two-person timing.
 
 ## Generator design (agreed with the user; don't relitigate without asking)
@@ -536,6 +540,7 @@ silence/eval_report.py     bootstrap CIs, summary tables, per-epoch curves, thre
 silence/plot_training.py   loss curves / LR schedule / dev loss vs LR + training_summary from metrics.*.jsonl
 silence/demo_phase1.py     listening demo: base + every 1 h / 10 h run's lowest-dev-loss and final checkpoints on 9 dev episodes -> results/demo/index.html
 silence/chat_gui.py        local control panel (http://127.0.0.1:8770) for live chat with checkpoints on the chat pod: 2 slots, 10 representative models (CURATED, with good/bad notes, incl. R21 10 h EPAD ×10 ep 2.2 / ep 5.0 and R22 50 h; 'show all' for the rest), SSH tunnel, test scripts, notes -> results/chat/notes.jsonl
+silence/human.py           human test set: recorded clips swapped into the test_all episodes -> data/test_human{,_tts,_free}
 silence/record.py          prompter for the human test set (solo): plan from test_all, room tone / own-words / verbatim blocks -> data/human/<speaker>/clips
 silence/chat_scripts.py    13 live-chat test scripts in training-episode style (train wording / held-out / new conditions) -> chat_gui + results/chat/test_scripts.md
 silence/transcript_gen.py  readable transcripts: script merged with each model's generated words, holds, outcomes -> results/transcripts.md; --html results/transcripts.html = interactive viewer (10 representative models x 9 demo conversations incl. R22 50 h, audio from demo_curated). Serve with `cd results && python3 -m http.server 8780`

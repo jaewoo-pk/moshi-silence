@@ -1,0 +1,17 @@
+  scored 20
+  scored 40
+  scored 60
+wrote /workspace/eval/human/test_human_tts/base/scores.jsonl
+episodes 72; holds 51 (timer 18, cue 33)
+hold violated         76.5% (n=51)
+talking through       13.7% (n=51)
+resume on time        51.0% (n=51)
+  no onset in window  43.1% (n=51)
+  cue latency        median +0.08 s, p90 1.55 s (n=18)
+  timer error        median -9.24 s, p90 21.64 s (n=14)
+words in hold (incl. ack): mean 18.2
+ordinary responded    59.3% (n=54); first turn  37.5% (n=24); median +1.80 s, p90 2.24 s (n=9)
+barge-in              58.3% (n=24)
+interrupt onsets     51 in 72 episodes
+distractor triggered D1a 85% (27)  D1b 100% (12)  D1c 67% (6)  D2a 83% (12)  D2b 67% (3)  D2c 67% (3)  D3a 83% (18)
+speech after distr.  D1a 81% (27)  D1b 100% (12)  D1c 83% (6)  D2a 83% (12)  D2b 67% (3)  D2c 67% (3)  D3a 89% (18)

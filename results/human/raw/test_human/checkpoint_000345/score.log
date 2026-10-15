@@ -1,0 +1,17 @@
+  scored 20
+  scored 40
+  scored 60
+wrote /workspace/eval/human/test_human/checkpoint_000345/scores.jsonl
+episodes 72; holds 51 (timer 18, cue 33)
+hold violated         43.1% (n=51)
+talking through        9.8% (n=51)
+resume on time        90.2% (n=51)
+  no onset in window   9.8% (n=51)
+  cue latency        median +0.56 s, p90 0.80 s (n=29)
+  timer error        median -7.98 s, p90 22.14 s (n=18)
+words in hold (incl. ack): mean 10.3
+ordinary responded    94.4% (n=54); first turn 100.0% (n=24); median +0.63 s, p90 0.72 s (n=24)
+barge-in              33.3% (n=24)
+interrupt onsets     3 in 72 episodes
+distractor triggered D1a 0% (27)  D1b 0% (12)  D1c 0% (6)  D2a 0% (12)  D2b 33% (3)  D2c 67% (3)  D3a 0% (18)
+speech after distr.  D1a 4% (27)  D1b 0% (12)  D1c 0% (6)  D2a 0% (12)  D2b 33% (3)  D2c 67% (3)  D3a 0% (18)

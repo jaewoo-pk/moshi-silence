@@ -1,0 +1,17 @@
+  scored 20
+  scored 40
+  scored 60
+wrote /workspace/eval/human/test_human/base/scores.jsonl
+episodes 72; holds 51 (timer 18, cue 33)
+hold violated         84.3% (n=51)
+talking through       21.6% (n=51)
+resume on time        43.1% (n=51)
+  no onset in window  56.9% (n=51)
+  cue latency        median +0.10 s, p90 1.79 s (n=16)
+  timer error        median -6.71 s, p90 23.14 s (n=14)
+words in hold (incl. ack): mean 18.2
+ordinary responded    55.6% (n=54); first turn  41.7% (n=24); median +0.30 s, p90 1.02 s (n=10)
+barge-in              45.8% (n=24)
+interrupt onsets     68 in 72 episodes
+distractor triggered D1a 70% (27)  D1b 75% (12)  D1c 83% (6)  D2a 83% (12)  D2b 67% (3)  D2c 0% (3)  D3a 94% (18)
+speech after distr.  D1a 85% (27)  D1b 67% (12)  D1c 50% (6)  D2a 75% (12)  D2b 67% (3)  D2c 0% (3)  D3a 89% (18)

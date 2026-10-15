@@ -1,0 +1,15 @@
+loaded + prepared in 110 s; 3 checkpoint(s) x 24 episodes x 3 sample(s), batch 40
+base: 72 episodes in 84 s (28 ms/step) -> /workspace/eval/human/test_human_tts/base
+checkpoint_000153: 72 episodes in 73 s (26 ms/step) -> /workspace/eval/human/test_human_tts/checkpoint_000153
+checkpoint_000345: 72 episodes in 73 s (26 ms/step) -> /workspace/eval/human/test_human_tts/checkpoint_000345
+all done in 339 s
+loaded + prepared in 44 s; 3 checkpoint(s) x 24 episodes x 3 sample(s), batch 40
+base: 72 episodes in 88 s (27 ms/step) -> /workspace/eval/human/test_human/base
+checkpoint_000153: 72 episodes in 80 s (26 ms/step) -> /workspace/eval/human/test_human/checkpoint_000153
+checkpoint_000345: 72 episodes in 81 s (27 ms/step) -> /workspace/eval/human/test_human/checkpoint_000345
+all done in 293 s
+loaded + prepared in 42 s; 3 checkpoint(s) x 16 episodes x 3 sample(s), batch 40
+base: 48 episodes in 77 s (25 ms/step) -> /workspace/eval/human/test_human_free/base
+checkpoint_000153: 48 episodes in 71 s (24 ms/step) -> /workspace/eval/human/test_human_free/checkpoint_000153
+checkpoint_000345: 48 episodes in 73 s (25 ms/step) -> /workspace/eval/human/test_human_free/checkpoint_000345
+all done in 264 s
