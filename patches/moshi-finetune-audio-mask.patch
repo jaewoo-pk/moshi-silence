@@ -1,0 +1,203 @@
+diff --git a/finetune/args.py b/finetune/args.py
+index afd4406..a2c7471 100644
+--- a/finetune/args.py
++++ b/finetune/args.py
+@@ -72,6 +72,12 @@ class TrainArgs(Serializable):
+     moshi_paths: ModelPaths = field(default_factory=ModelPaths)
+     first_codebook_weight_multiplier: float = 1.0
+     text_padding_weight: float = 0.5
++    # Skip the audio loss on frames where the main speaker (Moshi) is talking, padded by
++    # pre/post seconds. Text loss is unchanged and audio loss still applies wherever
++    # Moshi is silent, so synthetic (TTS-voiced) Moshi turns can't pull Moshi's voice.
++    mask_main_speech_audio: bool = False
++    main_speech_mask_pre_sec: float = 0.08
++    main_speech_mask_post_sec: float = 0.24
+ 
+     optim: OptimArgs = field(default_factory=OptimArgs)
+     seed: int = 0
+diff --git a/finetune/data/interleaver.py b/finetune/data/interleaver.py
+index c11ac23..fae24d1 100644
+--- a/finetune/data/interleaver.py
++++ b/finetune/data/interleaver.py
+@@ -18,19 +18,48 @@ TokenizedAlignment = tuple[list[int], tuple[float, float], str]
+ class Sample:
+     codes: torch.Tensor
+     condition_attributes: ConditionAttributes | None = None
++    # [1, T] bool, False where the audio loss is skipped (see main_speech_keep_mask).
++    audio_loss_mask: torch.Tensor | None = None
+ 
+ 
+ @dataclass
+ class Batch:
+     codes: torch.Tensor
+     condition_attributes: list[ConditionAttributes] | None = None
++    audio_loss_mask: torch.Tensor | None = None  # [B, T] bool
+ 
+     @classmethod
+     def collate(cls, batch: list[Sample]) -> "Batch":
+         codes = torch.cat([b.codes for b in batch])
+-        if batch[0].condition_attributes is None:
+-            return Batch(codes)
+-        return Batch(codes, [b.condition_attributes for b in batch])
++        conds = None
++        if batch[0].condition_attributes is not None:
++            conds = [b.condition_attributes for b in batch]
++        mask = None
++        if batch[0].audio_loss_mask is not None:
++            mask = torch.cat([b.audio_loss_mask for b in batch])
++        return Batch(codes, conds, mask)
++
++
++def main_speech_keep_mask(
++    alignments: list[Alignment],
++    num_frames: int,
++    frame_rate: float,
++    main_speaker: str,
++    pre_sec: float,
++    post_sec: float,
++) -> torch.Tensor:
++    """[1, num_frames] bool: False on every frame that overlaps a main-speaker word,
++    widened by pre_sec before and post_sec after (onset transient, decay, and Mimi's
++    causal frames still carrying the tail). Times are audio times, so no text delay."""
++    keep = torch.ones(1, num_frames, dtype=torch.bool)
++    for _, (start, end), speaker in alignments:
++        if speaker != main_speaker:
++            continue
++        f0 = max(0, math.floor((start - pre_sec) * frame_rate))
++        f1 = min(num_frames, math.ceil((end + post_sec) * frame_rate))
++        if f1 > f0:
++            keep[0, f0:f1] = False
++    return keep
+ 
+ 
+ def tokenize(
+@@ -245,11 +274,22 @@ def dicho(alignment, val, i=0, j=None):
+ 
+ 
+ class InterleavedTokenizer:
+-    def __init__(self, mimi, interleaver, duration_sec: float):
++    def __init__(
++        self,
++        mimi,
++        interleaver,
++        duration_sec: float,
++        mask_main_speech_audio: bool = False,
++        main_speech_mask_pre_sec: float = 0.08,
++        main_speech_mask_post_sec: float = 0.24,
++    ):
+         self.mimi = mimi
+         self.interleaver = interleaver
+         self.duration_sec = duration_sec
+         self.num_audio_frames = math.ceil(duration_sec * mimi.frame_rate)
++        self.mask_main_speech_audio = mask_main_speech_audio
++        self.main_speech_mask_pre_sec = main_speech_mask_pre_sec
++        self.main_speech_mask_post_sec = main_speech_mask_post_sec
+ 
+     def __call__(self, wav: np.ndarray, start_sec: float, path: str) -> Sample:
+         with torch.no_grad():
+@@ -286,4 +326,14 @@ class InterleavedTokenizer:
+             )
+ 
+             codes = torch.cat([text_tokens, audio_tokens], dim=1)
+-            return Sample(codes, data.get("text_conditions", None))
++            mask = None
++            if self.mask_main_speech_audio:
++                mask = main_speech_keep_mask(
++                    alignments,
++                    self.num_audio_frames,
++                    self.mimi.frame_rate,
++                    self.interleaver.main_speaker_label,
++                    self.main_speech_mask_pre_sec,
++                    self.main_speech_mask_post_sec,
++                )
++            return Sample(codes, data.get("text_conditions", None), mask)
+diff --git a/finetune/eval.py b/finetune/eval.py
+index cb0daba..b047831 100644
+--- a/finetune/eval.py
++++ b/finetune/eval.py
+@@ -56,10 +56,13 @@ def evaluate(
+                     model.end_of_text_padding_id,
+                 },
+             )
++            audio_mask = output.mask
++            if batch.audio_loss_mask is not None:
++                audio_mask = audio_mask & batch.audio_loss_mask.to(audio_mask.device)[:, None, :]
+             audio_loss += compute_loss_with_mask(
+                 output.logits,
+                 codes[:, model.audio_offset : model.audio_offset + model.dep_q],
+-                output.mask,
++                audio_mask,
+                 mode="audio",
+                 first_codebook_weight_multiplier=args.first_codebook_weight_multiplier,
+             )
+diff --git a/train.py b/train.py
+index fd3cc6d..cf99e96 100644
+--- a/train.py
++++ b/train.py
+@@ -161,7 +161,12 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+         keep_main_only=True,
+     )
+     interleaved_tokenizer = InterleavedTokenizer(
+-        mimi, interleaver, duration_sec=args.duration_sec
++        mimi,
++        interleaver,
++        duration_sec=args.duration_sec,
++        mask_main_speech_audio=args.mask_main_speech_audio,
++        main_speech_mask_pre_sec=args.main_speech_mask_pre_sec,
++        main_speech_mask_post_sec=args.main_speech_mask_post_sec,
+     )
+ 
+     # 5. Load data loaders
+@@ -238,6 +243,8 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+         optimizer.zero_grad()
+ 
+         loss = torch.tensor([0.0], device="cuda")
++        text_loss_sum = torch.tensor([0.0], device="cuda")
++        audio_loss_sum = torch.tensor([0.0], device="cuda")
+         n_batch_tokens: int = 0
+         n_real_tokens: int = 0
+ 
+@@ -264,10 +271,13 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+                     model.end_of_text_padding_id,
+                 },
+             )
++            audio_mask = output.mask
++            if batch.audio_loss_mask is not None:
++                audio_mask = audio_mask & batch.audio_loss_mask.to(audio_mask.device)[:, None, :]
+             audio_loss = compute_loss_with_mask(
+                 output.logits,
+                 codes[:, model.audio_offset : model.audio_offset + model.dep_q],
+-                output.mask,
++                audio_mask,
+                 mode="audio",
+                 first_codebook_weight_multiplier=args.first_codebook_weight_multiplier,
+             )
+@@ -276,9 +286,11 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+             mb_loss.backward()
+ 
+             loss += mb_loss.detach()
++            text_loss_sum += text_loss.detach()
++            audio_loss_sum += audio_loss.detach()
+             n_batch_tokens += output.text_mask.numel() + output.mask.numel()
+             n_real_tokens += (
+-                torch.sum(output.text_mask).item() + torch.sum(output.mask).item()
++                torch.sum(output.text_mask).item() + torch.sum(audio_mask).item()
+             )
+ 
+             if i < args.num_microbatches - 1:
+@@ -341,7 +353,14 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+                 torch.cuda.memory_allocated(),
+                 args,
+             )
+-            main_logger_info(train_log_msg(state, logs=train_logs, loss=avg_loss))
++            # The two terms of the loss, so their balance can be watched.
++            train_logs["text_loss"] = avg_aggregate(text_loss_sum.item() / args.num_microbatches)
++            train_logs["audio_loss"] = avg_aggregate(audio_loss_sum.item() / args.num_microbatches)
++            main_logger_info(
++                train_log_msg(state, logs=train_logs, loss=avg_loss)
++                + f" - text_loss: {train_logs['text_loss']:.3f}"
++                + f" - audio_loss: {train_logs['audio_loss']:.3f}"
++            )
+             metrics_logger.log(train_logs, step=state.step)
+ 
+         if args.do_ckpt and (

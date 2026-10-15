@@ -6,3 +6,5 @@ data/
 demo/episodes/*.wav
 __pycache__/
 .DS_Store
+cache50/
+cache50_stage/

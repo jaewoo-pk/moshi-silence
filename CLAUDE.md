@@ -77,6 +77,10 @@ or self-generated data. The brief, condensed:
   `assemble.gate()` zeroes every clip outside [onset − 50 ms, offset + 100 ms] with 10 ms
   fades. check.py skips the same margins when testing hold silence, and its `align=` column
   checks word times against audio onset (fails beyond ±0.15 s).
+- (2026-10-14) ~5% of Pocket clips open with up to 1 s of breath/noise poking above −30 dB,
+  which `speech_span()` took for the onset (Moshi text up to 0.9 s ahead of its audio).
+  The onset now has to be followed by real speech (a frame > −15 dB within 150 ms, or a
+  dense 100 ms reaching −23 dB). Checked on all 281 cached clips: 15 move, 14 clearly noise.
 
 **Not started:**
 - the user listening to the demo (do this before scaling)

@@ -20,7 +20,7 @@ from pathlib import Path
 
 def ledger(rows, metas):
     clips = Counter(c for m in metas for c in m["clips"])
-    packs = {m["pack"] for m in metas}
+    packs = {m["pack"] for m in metas} | {m["params"]["pack2"] for m in metas if "pack2" in m["params"]}
     h = lambda k: round(sum(r[k] for r in rows) / 3600, 3)
     by_type = Counter(r["type"] for r in rows)
     return {

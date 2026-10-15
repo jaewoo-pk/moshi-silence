@@ -1,7 +1,7 @@
 """Hand-written phrase banks, each split into train / test entries.
 
-Test entries never appear in training data. They are what the T-word and
-T-distract suites use to check generalization to new wording.
+Test entries never appear in training data. They are what the test_word suite
+uses to check generalization to new instruction / cue wording.
 
 Slots: {N} = spoken duration ("ten seconds"), {friend} = friend's name,
 {k} = number of options as a word ("three").
@@ -61,6 +61,22 @@ B1_RESCIND = {
     "test": [
         "Scratch that, you can ask me now.",
         "Okay, I'm ready sooner than I thought. Go ahead.",
+    ],
+}
+
+# B1_double: after the first question is answered, the user asks for a second one.
+B1_ANOTHER = {
+    "train": [
+        "Okay, give me another one.",
+        "Nice. Hit me with another one.",
+        "Alright, ask me another.",
+        "Okay, one more.",
+        "Let's do another one.",
+        "That was fun. Got another?",
+    ],
+    "test": [
+        "Go on, ask me a different one.",
+        "Okay, next question.",
     ],
 }
 
@@ -130,9 +146,10 @@ B2_RETURN_CUE = {
     ],
 }
 
+# Gender-neutral on purpose: the friend's voice is sampled independently of the name.
 FRIEND_NAMES = {
-    "train": ["Sam", "Alex", "Jordan", "Maya", "Chris", "Priya", "Leo", "Nina"],
-    "test": ["Taylor", "Omar", "Jess", "Ben"],
+    "train": ["Sam", "Alex", "Jordan", "Chris", "Jamie", "Casey"],
+    "test": ["Taylor", "Riley", "Morgan"],
 }
 
 # ---------------------------------------------------------------- B3: hear me out
@@ -215,52 +232,9 @@ ACKS = {
     "KW": ["Okay.", "Got it.", "Sure."],
 }
 
-# ---------------------------------------------------------------- Distractors
-# D1: questions addressed to the other person (on the user channel, during a B2 hold).
-DISTRACT = {
-    "D1a": {  # friend -> user
-        "train": [
-            "What do you think?", "Did you see that?", "Are you coming tonight?",
-            "Do you want some coffee?", "Can you believe it?", "Is that okay with you?",
-            "Which one do you like better?", "Should I just call them?",
-        ],
-        "test": ["Wait, what did you say?", "Do you have a minute later?", "Does that make sense?"],
-    },
-    "D1b": {  # user -> friend
-        "train": [
-            "Can you grab my charger?", "Did you lock the door?", "What time are we leaving?",
-            "Did you eat yet?", "Can you send me that link?", "Where did you park?",
-        ],
-        "test": ["Are you driving or am I?", "Did you text her back?"],
-    },
-    "D1c": {  # friend -> user, but sounds like it could be for the assistant
-        "train": [
-            "Do you know what time it is?", "How do you spell restaurant?",
-            "What's the weather supposed to be tomorrow?", "How far is it from here?",
-        ],
-        "test": ["What's the capital of Australia again?", "How many ounces are in a cup?"],
-    },
-    # D3a: look like the B2 return cue, but are part of the side conversation.
-    "D3a": {
-        "train": [
-            "I'll get back to you on that.", "I was back home last week.", "Okay, so anyway.",
-            "I'm back at work on Monday.", "Bring it back when you're done.", "Back then it was cheaper.",
-        ],
-        "test": ["We should head back soon.", "Text me when you're back.", "Okay, where was I with this?"],
-    },
-    # D3b: look like the B3 completion cue, but more options are coming.
-    "D3b": {
-        "train": ["That's option two.", "That's it for the first one.", "So that's one option.",
-                  "Okay, that's that one."],
-        "test": ["So that's another possibility.", "That covers the second one."],
-    },
-    # D4 (test only): the FRIEND says the return cue. Moshi must stay quiet: the cue
-    # has to come from the user.
-    "D4": {
-        "train": [],
-        "test": ["Okay, I'm back!", "Alright, I'm back, sorry.", "I'm back. What did I miss?"],
-    },
-}
+# Distractors are not phrase-banked: the LLM writes them into each pack in context
+# (B2 side-conversation line tags, B2 friend_away, B3 aside, B1 mutter; see gen_packs),
+# so they stay coherent and test packs carry unseen distractor wording.
 
 FRIEND_ARRIVAL = {
     "train": ["Hey, do you have a sec?", "Hey! Are you busy?", "Hey, quick question.",

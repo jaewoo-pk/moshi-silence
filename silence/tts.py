@@ -39,16 +39,25 @@ def _speech_bounds(audio, sr=SR, thresh_db=-40.0, win=0.02):
 
 def speech_span(audio, sr=SR, rel_db=-30.0, win=0.01):
     """Onset / offset of actual speech: 10 ms frames within rel_db of the clip's peak.
-    -30 dB sits above Pocket TTS's noise floor (~-42 dBFS) but below quiet consonants."""
+    -30 dB sits above Pocket TTS's noise floor (~-42 dBFS) but below quiet consonants.
+
+    About 5% of Pocket clips open with up to a second of breath / noise that pokes above
+    -30 dB before the first word. So the onset is the first such frame that is followed
+    by real speech: a frame above -15 dB within 150 ms, or a dense 100 ms (40% of frames
+    above rel_db) reaching -23 dB. The noise never gets louder than about -26 dB except
+    for isolated clicks; a short word before a pause ("The ... clock") passes."""
     n = int(win * sr)
     m = len(audio) // n
     if m == 0:
         return 0.0, len(audio) / sr
     e = (audio[: m * n].reshape(m, n) ** 2).mean(1) + 1e-12
-    idx = np.nonzero(10 * np.log10(e / e.max()) > rel_db)[0]
+    db = 10 * np.log10(e / e.max())
+    idx = np.nonzero(db > rel_db)[0]
     if len(idx) == 0:
         return 0.0, len(audio) / sr
-    return idx[0] * win, (idx[-1] + 1) * win
+    on = next((i for i in idx if (db[i: i + 16] > -15).any()
+               or ((db[i: i + 10] > rel_db).mean() >= 0.4 and (db[i: i + 10] > -23).any())), idx[0])
+    return on * win, (idx[-1] + 1) * win
 
 
 def retime(audio, words, tol=0.03):
