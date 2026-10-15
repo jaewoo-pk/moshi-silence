@@ -24,7 +24,7 @@ import random
 from . import phrasebank as pb
 from .assemble import TAIL_S
 from .splits import SPLITS
-from .voices import load_pool, pool_for
+from .voices import load_pool, pool_for, sample_multi
 
 # Train episodes must fit one 60 s window (build.MAX_TRAIN_DUR). Length budgets aim a few
 # seconds lower because est_duration() is an estimate.
@@ -94,8 +94,12 @@ class Ctx:
         self.id, self.split, self.backend = ep_id, split, backend
         self.cfg = SPLITS[split]
         self.r = random.Random(f"{seed}:{ep_id}")
-        pool = pool_for(backend, self.cfg["voices"])
-        user, friend = self.r.sample(pool, 2)
+        self.r3 = random.Random(f"{seed}:{ep_id}:v3")  # v3 timing only (LONG_SILENCES); never touches self.r
+        if backend == "multi":
+            user, friend = sample_multi(self.r, self.cfg["voices"])
+        else:
+            pool = pool_for(backend, self.cfg["voices"])
+            user, friend = self.r.sample(pool, 2)
         self.voices = {"moshi": load_pool(backend)["moshi"], "user": user, "friend": friend}
         self.params = {
             "friend_gain_db": round(self.r.uniform(-9, -4), 1),
@@ -145,7 +149,7 @@ def build_b1(c: Ctx, pack, variant="std", cond=False):
     T.append({"spk": "user", "text": instr, "gap": turn_gap(r), "anchor": "instr"})
     c.ack("B1", T)
     if variant == "std":
-        if r.random() < 0.5 and N >= 5:  # thinking fillers inside the hold (D2c)
+        if r.random() < MUTTER_P and N >= 5:  # thinking fillers inside the hold (D2c)
             # Placed one after another; each must end >= 1 s before the re-ask, judged by an
             # upper-bound duration estimate (spec time has no audio yet; check.py verifies).
             t0 = 2.0
@@ -245,6 +249,9 @@ def _side_with_distractors(c: Ctx, pack, n_stall, d4=False, max_lines=None):
         ok = [p for p in slots(end=False) if "stall" not in T[p]]
         if ok:
             T[r.choice(ok)]["stall"] = ["D2a", round(r.uniform(2.0, 8.0), 2)]
+            if LONG_SILENCES and c.r3.random() < 0.5:
+                st = next(t for t in T if t.get("stall", [""])[0] == "D2a")
+                st["stall"][1] = round(c.r3.uniform(8.0, 20.0), 2)
     if d4:  # test only: the cue comes from the wrong person
         away, back = pack["friend_away"]
         pos = r.choice(slots(end=True) or [len(T)])
@@ -333,6 +340,8 @@ def build_b3(c: Ctx, pack, variant="std", dense=None):
                  "gap": (turn_gap(r) + 0.3) if i == 0 else between}
         if i > 0 and d2b_after == i - 1:
             first["stall"] = ["D2b", round(r.uniform(3.0, 5.0), 2)]
+            if LONG_SILENCES:
+                first["stall"][1] = round(c.r3.uniform(3.0, 12.0), 2)
             codes.append("D2b")
         T.append(first)
         for s in sents[1:]:
@@ -350,8 +359,19 @@ def build_b3(c: Ctx, pack, variant="std", dense=None):
         cue = c.pick("cue", pb.B3_RESCIND)
         comment = pack["comment_first"]
     T.append({"spk": "user", "text": cue, "gap": turn_gap(r), "anchor": "cue"})
+    if LONG_SILENCES and c.r3.random() < (0.6 if variant != "std" else 0.4):
+        # silence after the last option, before the user's cue: Moshi must keep waiting (rescind: after only
+        # one option, where R22 jumped in 85% of the time)
+        T[-1]["stall"] = ["D2b", round(c.r3.uniform(2.5, 10.0), 2)]
+        codes.append("D2b")
     T.append({"spk": "moshi", "text": comment, "gap": moshi_gap(r), "role": "release", "release": True})
     T.append({"spk": "user", "text": pack["followup"], "gap": turn_gap(r)})
+    if LONG_SILENCES and c.split == "train":  # keep the 60 s window: shrink the v3 silences, longest first
+        for t in sorted((t for t in T if t.get("stall")), key=lambda t: -t["stall"][1]):
+            over = est_duration({"turns": T}) - BUDGET_DUR
+            if over <= 0:
+                break
+            t["stall"][1] = round(max(2.5, t["stall"][1] - over), 2)
     return c.spec(f"B3_{variant}", pack, T, k=k, n_presented=n_present, distractors=codes, release={"kind": "cue"})
 
 
@@ -409,6 +429,16 @@ BUILDERS = {
 }
 
 # Training mix (by episode count), agreed 15 / 25 / 20 / 40. B1_double takes 2 of B1_std's 11.
+# v2 mix (50 h build, 2026-10-15): timed holds were the unlearned behavior, so B1 gets a bigger
+# share and more mutters (D2c) inside its holds; B2 / B3 shrink. Used with build.py --mix v2.
+TRAIN_MIX_V2 = {"B1_std": 17, "B1_double": 4, "B1_early": 2, "B1_rescind": 2, "B2_std": 20,
+                "B3_std": 11, "B3_early": 2, "B3_rescind": 2, "ORD": 30, "DECOY": 10}
+MUTTER_P = 0.5  # share of B1 holds (N >= 5) with mutters; build.py --mix v2 sets 0.7
+# v3 (2026-10-15, after R22): long silences inside CUE-released holds, so "a few seconds of silence" no longer
+# predicts that Moshi should speak (R22 learned that shortcut from the B1-heavy v2 mix + EPAD x10). Drawn from
+# Ctx.r3, so a v3 build has exactly the v2 plan's lines, voices and clips; only timing changes.
+LONG_SILENCES = False
+
 TRAIN_MIX = {
     "B1_std": 9, "B1_double": 2, "B1_early": 2, "B1_rescind": 2,
     "B2_std": 25,

@@ -1,0 +1,20 @@
+loaded + prepared in 164 s; 18 checkpoint(s) x 80 episodes x 1 sample(s), batch 40
+checkpoint_000007: 80 episodes in 59 s (31 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000007
+checkpoint_000014: 80 episodes in 54 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000014
+checkpoint_000021: 80 episodes in 52 s (27 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000021
+checkpoint_000028: 80 episodes in 53 s (27 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000028
+checkpoint_000035: 80 episodes in 54 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000035
+checkpoint_000042: 80 episodes in 54 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000042
+checkpoint_000049: 80 episodes in 53 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000049
+checkpoint_000056: 80 episodes in 52 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000056
+checkpoint_000063: 80 episodes in 53 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000063
+checkpoint_000070: 80 episodes in 53 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000070
+checkpoint_000077: 80 episodes in 52 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000077
+checkpoint_000084: 80 episodes in 52 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000084
+checkpoint_000091: 80 episodes in 53 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000091
+checkpoint_000098: 80 episodes in 54 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000098
+checkpoint_000105: 80 episodes in 55 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000105
+checkpoint_000112: 80 episodes in 52 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000112
+checkpoint_000119: 80 episodes in 52 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000119
+checkpoint_000126: 80 episodes in 52 s (28 ms/step) -> /workspace/eval/R19_1h_lr5e-05_epad100/dev_80/checkpoint_000126
+all done in 1123 s

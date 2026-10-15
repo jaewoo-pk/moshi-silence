@@ -1,0 +1,9 @@
+03:44:51 GPU 3: R11_10h_lr0.0005 on dev_80 (log: /workspace/logs/eval/R11_10h_lr0.0005_dev_80.log)
+03:44:51 GPU 2: R10_10h_lr0.0002 on dev_80 (log: /workspace/logs/eval/R10_10h_lr0.0002_dev_80.log)
+03:44:51 GPU 0: R8_10h_lr2e-05 on dev_80 (log: /workspace/logs/eval/R8_10h_lr2e-05_dev_80.log)
+03:44:51 GPU 1: R9_10h_lr5e-05 on dev_80 (log: /workspace/logs/eval/R9_10h_lr5e-05_dev_80.log)
+04:06:34 GPU 3: R11_10h_lr0.0005 done (exit 0)
+04:06:38 GPU 0: R8_10h_lr2e-05 done (exit 0)
+04:06:40 GPU 2: R10_10h_lr0.0002 done (exit 0)
+04:06:41 GPU 1: R9_10h_lr5e-05 done (exit 0)
+04:06:41 all evals finished

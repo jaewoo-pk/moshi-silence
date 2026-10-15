@@ -1,0 +1,116 @@
+{
+ "full": {
+  "episodes": 5585,
+  "unique_packs": 5799,
+  "unique_tts_clips": 40921,
+  "clip_uses": 45350,
+  "hours_total": 51.236,
+  "hours_speech_any_channel": 35.851,
+  "hours_moshi_speech": 13.199,
+  "hours_hold_silence": 17.565,
+  "mean_episode_s": 33.03,
+  "by_type": {
+   "B1_double": 214,
+   "B1_early": 103,
+   "B1_rescind": 104,
+   "B1_std": 975,
+   "B2_std": 1083,
+   "B3_early": 121,
+   "B3_rescind": 113,
+   "B3_std": 617,
+   "DECOY": 551,
+   "ORD": 1704
+  }
+ },
+ "train_1h.jsonl": {
+  "episodes": 110,
+  "unique_packs": 111,
+  "unique_tts_clips": 848,
+  "clip_uses": 887,
+  "hours_total": 1.013,
+  "hours_speech_any_channel": 0.696,
+  "hours_moshi_speech": 0.255,
+  "hours_hold_silence": 0.36,
+  "mean_episode_s": 33.15,
+  "by_type": {
+   "B1_double": 1,
+   "B1_early": 1,
+   "B1_std": 26,
+   "B2_std": 26,
+   "B3_early": 2,
+   "B3_rescind": 2,
+   "B3_std": 8,
+   "DECOY": 14,
+   "ORD": 30
+  }
+ },
+ "train_10h.jsonl": {
+  "episodes": 1084,
+  "unique_packs": 1114,
+  "unique_tts_clips": 8231,
+  "clip_uses": 8774,
+  "hours_total": 10.001,
+  "hours_speech_any_channel": 6.967,
+  "hours_moshi_speech": 2.544,
+  "hours_hold_silence": 3.512,
+  "mean_episode_s": 33.21,
+  "by_type": {
+   "B1_double": 30,
+   "B1_early": 17,
+   "B1_rescind": 16,
+   "B1_std": 207,
+   "B2_std": 215,
+   "B3_early": 24,
+   "B3_rescind": 19,
+   "B3_std": 124,
+   "DECOY": 110,
+   "ORD": 322
+  }
+ },
+ "train_25h.jsonl": {
+  "episodes": 2724,
+  "unique_packs": 2818,
+  "unique_tts_clips": 20367,
+  "clip_uses": 22102,
+  "hours_total": 25.004,
+  "hours_speech_any_channel": 17.476,
+  "hours_moshi_speech": 6.416,
+  "hours_hold_silence": 8.63,
+  "mean_episode_s": 33.05,
+  "by_type": {
+   "B1_double": 94,
+   "B1_early": 45,
+   "B1_rescind": 49,
+   "B1_std": 471,
+   "B2_std": 558,
+   "B3_early": 64,
+   "B3_rescind": 50,
+   "B3_std": 284,
+   "DECOY": 280,
+   "ORD": 829
+  }
+ },
+ "train_50h.jsonl": {
+  "episodes": 5457,
+  "unique_packs": 5664,
+  "unique_tts_clips": 39968,
+  "clip_uses": 44238,
+  "hours_total": 50.001,
+  "hours_speech_any_channel": 34.98,
+  "hours_moshi_speech": 12.892,
+  "hours_hold_silence": 17.116,
+  "mean_episode_s": 32.99,
+  "by_type": {
+   "B1_double": 207,
+   "B1_early": 99,
+   "B1_rescind": 102,
+   "B1_std": 956,
+   "B2_std": 1055,
+   "B3_early": 118,
+   "B3_rescind": 110,
+   "B3_std": 599,
+   "DECOY": 546,
+   "ORD": 1665
+  }
+ }
+}

@@ -1,0 +1,12 @@
+00:58:31 [1b] done  R1_1h_lr2e-06
+00:58:31 [1b] done  R2_1h_lr1e-05
+00:58:31 [1b] done  R3_1h_lr5e-05
+00:58:31 [1b] start R6/R7 on GPUs 1 2; evals R0 R1 R2 on GPU 3
+01:00:31 [1b] done  R4_1h_lr0.0002
+01:00:31 [1b] evals R3 R4 on GPU 0
+01:34:37 [1b] R6/R7 finished; evaluating their checkpoints split over 4 GPUs (after the GPU 0/3 evals free up)
+01:48:17 [1b] eval R7_1h_lr2e-05 part 0 on GPU 2 done
+01:48:31 [1b] eval R6_1h_lr5e-06 part 0 on GPU 1 done
+01:49:39 [1b] eval R7_1h_lr2e-05 part 1 on GPU 0 done
+01:49:47 [1b] eval R6_1h_lr5e-06 part 1 on GPU 3 done
+01:49:47 [1b] phase-1 generation evals all done

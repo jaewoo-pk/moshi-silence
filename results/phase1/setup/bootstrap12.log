@@ -1,0 +1,189 @@
+== 1. moshi-finetune @ 2acc879 + 3 patches, env from its uv.lock
+Cloning into '/workspace/moshi-finetune'...
+  moshi-finetune-audio-mask.patch: applied
+  moshi-finetune-eval-reload.patch: applied
+  moshi-finetune-text-tail.patch: applied
+downloading uv 0.13.1 x86_64-unknown-linux-gnu
+installing to /workspace/bin
+  uv
+  uvx
+everything's installed!
+Downloading cpython-3.12.15-linux-x86_64-gnu (download) (32.7MiB)
+ Downloaded cpython-3.12.15-linux-x86_64-gnu (download)
+Using CPython 3.12.15
+Creating virtual environment at: .venv
+   Updating https://github.com/kyutai-labs/moshi.git (HEAD)
+Downloading cython (3.4MiB)
+Downloading tiktoken (1.1MiB)
+Downloading grpcio (5.6MiB)
+Downloading torch (731.1MiB)
+Downloading numpy (15.3MiB)
+Downloading nvidia-cusparselt-cu12 (143.1MiB)
+Downloading aiohttp (1.6MiB)
+Downloading tensorboard (5.2MiB)
+Downloading auditok (1.4MiB)
+Downloading sphn (12.2MiB)
+Downloading sentencepiece (1.2MiB)
+Downloading llvmlite (40.4MiB)
+Downloading triton (241.4MiB)
+Downloading scipy (35.6MiB)
+Downloading nvidia-nvjitlink-cu12 (20.1MiB)
+Downloading numba (3.7MiB)
+Downloading networkx (1.6MiB)
+Downloading nvidia-curand-cu12 (53.7MiB)
+Downloading setuptools (1.2MiB)
+Downloading bitsandbytes (72.5MiB)
+Downloading nvidia-cuda-cupti-cu12 (13.2MiB)
+Downloading nvidia-cublas-cu12 (346.6MiB)
+Downloading nvidia-cufft-cu12 (201.7MiB)
+Downloading sympy (5.9MiB)
+Downloading torchaudio (3.2MiB)
+Downloading nvidia-cusparse-cu12 (197.8MiB)
+Downloading nvidia-cusolver-cu12 (122.0MiB)
+Downloading nvidia-cuda-nvrtc-cu12 (23.5MiB)
+Downloading nvidia-nccl-cu12 (179.9MiB)
+Downloading nvidia-cudnn-cu12 (634.0MiB)
+Downloading tensorboard-data-server (6.3MiB)
+ Downloaded tiktoken
+ Downloaded sentencepiece
+   Building fire==0.7.0
+ Downloaded auditok
+ Downloaded aiohttp
+ Downloaded torchaudio
+ Downloaded setuptools
+ Downloaded cython
+ Downloaded networkx
+ Downloaded grpcio
+ Downloaded tensorboard-data-server
+ Downloaded numba
+ Downloaded tensorboard
+    Updated https://github.com/kyutai-labs/moshi.git (061cc4c630d9e11722e08b7d02b1836ba58f30e8)
+   Building moshi @ git+https://github.com/kyutai-labs/moshi.git@061cc4c630d9e11722e08b7d02b1836ba58f30e8#subdirectory=moshi
+ Downloaded sphn
+ Downloaded nvidia-cuda-cupti-cu12
+ Downloaded numpy
+ Downloaded nvidia-nvjitlink-cu12
+ Downloaded nvidia-cuda-nvrtc-cu12
+ Downloaded llvmlite
+ Downloaded sympy
+ Downloaded nvidia-curand-cu12
+ Downloaded bitsandbytes
+ Downloaded scipy
+ Downloaded nvidia-cusolver-cu12
+ Downloaded nvidia-cusparselt-cu12
+      Built fire==0.7.0
+ Downloaded nvidia-nccl-cu12
+      Built moshi @ git+https://github.com/kyutai-labs/moshi.git@061cc4c630d9e11722e08b7d02b1836ba58f30e8#subdirectory=moshi
+ Downloaded nvidia-cufft-cu12
+ Downloaded nvidia-cusparse-cu12
+ Downloaded nvidia-cublas-cu12
+ Downloaded triton
+ Downloaded nvidia-cudnn-cu12
+ Downloaded torch
+Prepared 79 packages in 1m 02s
+Installed 79 packages in 7.29s
+ + absl-py==2.2.1
+ + aiohappyeyeballs==2.6.1
+ + aiohttp==3.11.16
+ + aiosignal==1.3.2
+ + attrs==25.3.0
+ + auditok==0.2.0
+ + bitsandbytes==0.45.4
+ + certifi==2025.1.31
+ + cffi==1.17.1
+ + charset-normalizer==3.4.1
+ + cloudpickle==3.1.1
+ + cython==3.0.12
+ + docstring-parser==0.16
+ + dtw-python==1.5.3
+ + einops==0.8.1
+ + filelock==3.18.0
+ + fire==0.7.0
+ + frozenlist==1.5.0
+ + fsspec==2025.3.2
+ + grpcio==1.71.0
+ + huggingface-hub==0.28.1
+ + idna==3.10
+ + iniconfig==2.1.0
+ + jinja2==3.1.6
+ + llvmlite==0.44.0
+ + markdown==3.7
+ + markupsafe==3.0.2
+ + more-itertools==10.6.0
+ + moshi==0.2.4a1 (from git+https://github.com/kyutai-labs/moshi.git@061cc4c630d9e11722e08b7d02b1836ba58f30e8#subdirectory=moshi)
+ + mpmath==1.3.0
+ + multidict==6.3.1
+ + networkx==3.4.2
+ + numba==0.61.0
+ + numpy==2.1.3
+ + nvidia-cublas-cu12==12.4.5.8
+ + nvidia-cuda-cupti-cu12==12.4.127
+ + nvidia-cuda-nvrtc-cu12==12.4.127
+ + nvidia-cuda-runtime-cu12==12.4.127
+ + nvidia-cudnn-cu12==9.1.0.70
+ + nvidia-cufft-cu12==11.2.1.3
+ + nvidia-curand-cu12==10.3.5.147
+ + nvidia-cusolver-cu12==11.6.1.9
+ + nvidia-cusparse-cu12==12.3.1.170
+ + nvidia-cusparselt-cu12==0.6.2
+ + nvidia-nccl-cu12==2.21.5
+ + nvidia-nvjitlink-cu12==12.4.127
+ + nvidia-nvtx-cu12==12.4.127
+ + packaging==24.2
+ + pluggy==1.5.0
+ + propcache==0.3.1
+ + protobuf==6.30.2
+ + pycparser==2.22
+ + pytest==8.3.5
+ + pyyaml==6.0.2
+ + regex==2024.11.6
+ + requests==2.32.3
+ + safetensors==0.5.3
+ + scipy==1.15.2
+ + sentencepiece==0.2.0
+ + setuptools==78.1.0
+ + simple-parsing==0.1.7
+ + six==1.17.0
+ + sounddevice==0.5.0
+ + sphn==0.1.12
+ + submitit==1.5.2
+ + sympy==1.13.1
+ + tensorboard==2.19.0
+ + tensorboard-data-server==0.7.2
+ + termcolor==3.0.0
+ + tiktoken==0.9.0
+ + torch==2.6.0
+ + torchaudio==2.6.0
+ + tqdm==4.67.1
+ + triton==3.2.0
+ + typing-extensions==4.13.0
+ + urllib3==2.3.0
+ + werkzeug==3.1.3
+ + whisper-timestamped==1.15.8
+ + yarl==1.18.3
+   Building openai-whisper==20240930
+      Built openai-whisper==20240930
+Prepared 1 package in 4.92s
+Installed 1 package in 59ms
+ + openai-whisper==20240930
+Resolved 26 packages in 424ms
+Downloading silero-vad (10.8MiB)
+ Downloaded silero-vad
+Prepared 1 package in 230ms
+Installed 1 package in 44ms
+ + silero-vad==6.2.3
+== 2. weights @ 2bfc9ae
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Still waiting to acquire lock on /workspace/moshiko/.cache/huggingface/.gitignore.lock (elapsed: 0.1 seconds)
+Still waiting to acquire lock on /workspace/moshiko/.cache/huggingface/.gitignore.lock (elapsed: 0.1 seconds)
+Downloading '.gitattributes' to '/workspace/moshiko/.cache/huggingface/download/wPaCkH-WbT7GsmxMKKrNZTV4nSM=.a6344aac8c09253b3b630fb776ae94478aa0275b.incomplete'
+Downloading 'tokenizer-e351c8d8-checkpoint125.safetensors' to '/workspace/moshiko/.cache/huggingface/download/3N_Ni-FFXSJBRWPH9Ha-_ikmAWw=.09b782f0629851a271227fb9d36db65c041790365f11bbe5d3d59369cf863f50.incomplete'
+Download complete. Moving file to /workspace/moshiko/.gitattributes
+Downloading 'tokenizer_spm_32k_3.model' to '/workspace/moshiko/.cache/huggingface/download/uF4F7_GExA-fRZPqmnbNYlWsA8A=.78d4336533ddc26f9acf7250d7fb83492152196c6ea4212c841df76933f18d2d.incomplete'
+Fetching 5 files:  20%|██        | 1/5 [00:00<00:00,  4.87it/s]Downloading 'model.safetensors' to '/workspace/moshiko/.cache/huggingface/download/xGOKKLRSlIhH692hSVvI1-gpoa8=.5b835c664f3830bf453808cbca9bfbcc9de332c328cc01cbffdfbaba2a8838a7.incomplete'
+Downloading 'README.md' to '/workspace/moshiko/.cache/huggingface/download/Xn7B-BWUGOee2Y6hCZtEhtFu4BE=.0b45b5f519005a76234eca19f7b08ce3ac6322d3.incomplete'
+Download complete. Moving file to /workspace/moshiko/README.md
+Download complete. Moving file to /workspace/moshiko/tokenizer_spm_32k_3.model
+Download complete. Moving file to /workspace/moshiko/tokenizer-e351c8d8-checkpoint125.safetensors
+Download complete. Moving file to /workspace/moshiko/model.safetensors
+Fetching 5 files:  60%|██████    | 3/5 [02:53<02:08, 64.17s/it]Fetching 5 files: 100%|██████████| 5/5 [02:53<00:00, 34.66s/it]
+/workspace/moshiko

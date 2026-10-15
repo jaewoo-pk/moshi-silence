@@ -56,7 +56,7 @@ lora:
 first_codebook_weight_multiplier: 100.
 text_padding_weight: .5
 mask_main_speech_audio: true
-
+{loss_extra}
 duration_sec: 60
 batch_size: {batch}
 max_steps: {max_steps}
@@ -86,6 +86,16 @@ def main():
     ap.add_argument("--eval", required=True, help="dev jsonl for the per-epoch validation loss")
     ap.add_argument("--epochs", type=int, help=f"default {PHASE1_EPOCHS} for phase 1; required for phase 2")
     ap.add_argument("--lrs", type=float, nargs="+", help="default: the 5 phase-1 LRs; phase 2: the top 2")
+    ap.add_argument("--first", type=int, help="number of the first run (default: 1 for phase 1, 8 for phase 2; "
+                    "phase-1 add-on LRs R6-R7 were made with --first 6 --no-base)")
+    ap.add_argument("--ckpts-per-epoch", type=int, default=1,
+                    help="checkpoints (+ dev loss) per epoch (phase 2 used 4: every ~17 steps at 10 h)")
+    ap.add_argument("--epad-weight", type=float, help="text_epad_weight (loss-weights patch): weight on EPAD frames")
+    ap.add_argument("--audio-weight", type=float, help="audio_loss_weight (loss-weights patch): total = text + w * audio")
+    ap.add_argument("--steps", type=int, help="fixed max_steps instead of epochs (equal training compute across data sizes)")
+    ap.add_argument("--every", type=int, help="checkpoint + dev loss every N steps (overrides --ckpts-per-epoch)")
+    ap.add_argument("--suffix", default="", help="appended to run names, e.g. _epad10")
+    ap.add_argument("--no-base", action="store_true", help="phase 1: don't (re)write R0_devloss")
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--moshi-dir", required=True, help="local snapshot of kyutai/moshiko-pytorch-bf16 (pinned)")
     ap.add_argument("--mimi", default="tokenizer-e351c8d8-checkpoint125.safetensors")
@@ -95,6 +105,8 @@ def main():
     a = ap.parse_args()
 
     epochs = a.epochs or (PHASE1_EPOCHS if a.phase == 1 else None)
+    if a.steps:
+        epochs = -1  # set from the data size below
     if epochs is None:
         ap.error("phase 2 needs --epochs (E, chosen from phase 1)")
     lrs = a.lrs or (PHASE1_LRS if a.phase == 1 else None)
@@ -102,15 +114,24 @@ def main():
         ap.error("phase 2 needs --lrs (the top 2 from phase 1)")
 
     n = sum(1 for l in Path(a.train).read_text().splitlines() if l.strip())
-    max_steps = math.ceil(epochs * n / a.batch)
-    every = max(1, round(n / a.batch))
+    if a.steps:
+        max_steps = a.steps
+        epochs = round(a.steps * a.batch / n, 4)
+    else:
+        max_steps = math.ceil(epochs * n / a.batch)
+    every = a.every or max(1, round(n / a.batch / a.ckpts_per_epoch))
     data_tag = Path(a.train).stem.replace("train_", "")
-    first = 1 if a.phase == 1 else 6
+    first = a.first or (1 if a.phase == 1 else 8)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    common = dict(n=n, batch=a.batch, train=a.train, eval=a.eval, moshi_dir=a.moshi_dir.rstrip("/"),
+    loss_extra = ""
+    if a.epad_weight is not None:
+        loss_extra += f"text_epad_weight: {a.epad_weight:.6e}\n"
+    if a.audio_weight is not None:
+        loss_extra += f"audio_loss_weight: {a.audio_weight:.6e}\n"
+    common = dict(loss_extra=loss_extra, n=n, batch=a.batch, train=a.train, eval=a.eval, moshi_dir=a.moshi_dir.rstrip("/"),
                   mimi=a.mimi, tokenizer=a.tokenizer)
-    if a.phase == 1:
+    if a.phase == 1 and not a.no_base:
         # R0's dev loss: LoRA B starts at zero and AdamW at lr 0 changes nothing, so this
         # evaluates the base model exactly (at the end of 2 no-op steps; nothing saved).
         name = "R0_devloss"
@@ -119,7 +140,7 @@ def main():
             every=0, every_ep=0.0, lr=0.0, do_ckpt="false", run_dir=f"{a.runs.rstrip('/')}/{name}", **common))
         print(f"{out / name}.yaml  lr=0  2 no-op steps, dev loss at the end")
     for i, lr in enumerate(lrs):
-        name = f"R{first + i}_{data_tag}_lr{lr:g}"
+        name = f"R{first + i}_{data_tag}_lr{lr:g}{a.suffix}"
         run_dir = f"{a.runs.rstrip('/')}/{name}"
         (out / f"{name}.yaml").write_text(TEMPLATE.format(
             name=name, note=f"phase {a.phase}", epochs=epochs, max_steps=max_steps,

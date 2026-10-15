@@ -65,7 +65,7 @@ def metrics(rows):
 
 
 CI_KEYS = ["hold_violated", "on_time", "no_onset", "talking_through", "words_in_hold", "cue_latency_med",
-           "timer_abs_err_med", "ord_first_responded", "ord_latency_med", "barge_in"]
+           "timer_abs_err_med", "ord_responded", "ord_first_responded", "ord_latency_med", "barge_in"]
 
 
 def bootstrap(rows, n=1000, seed=0):
@@ -154,37 +154,51 @@ def fmt(v, lo=None, hi=None, pct=True):
 
 
 def plot(table, out):
-    try:
-        import matplotlib
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-    except ImportError:
+    from . import plotstyle as ps
+    plt = ps.setup()
+    if plt is None:
         print("matplotlib not available: skipping plots")
         return
     panels = [("hold_violated", "hold violated"), ("on_time", "resumed on time"),
-              ("ord_first_responded", "ordinary: answered"), ("text_dev_loss", "text dev loss")]
+              ("ord_responded", "ordinary: answered"), ("text_dev_loss", "text dev loss")]
     for s in sorted({r["set"] for r in table}):
         rs = [r for r in table if r["set"] == s]
-        fig, axes = plt.subplots(1, len(panels), figsize=(4.2 * len(panels), 3.4))
+        fig, axes = plt.subplots(1, len(panels), figsize=(4.2 * len(panels), 3.6))
+        base = [r for r in rs if r["ckpt"] == "base" or r["run"].startswith("R0")]
+        runs = sorted({r["run"] for r in rs if not r["run"].startswith("R0")},
+                      key=lambda run: ps.run_lr(run) or 0)
         for ax, (k, title) in zip(axes, panels):
-            base = [r for r in rs if r["ckpt"] == "base" or r["run"].startswith("R0")]
-            for run in sorted({r["run"] for r in rs if not r["run"].startswith("R0")}):
+            b = base[0][k] if base and np.isfinite(base[0].get(k, np.nan)) else None
+            for run in runs:
                 pts = sorted((r["epoch"], r[k], r.get(f"{k}_lo", np.nan), r.get(f"{k}_hi", np.nan))
                              for r in rs if r["run"] == run and r["ckpt"] != "base" and np.isfinite(r["epoch"]))
                 if not pts:
                     continue
+                if b is not None:  # epoch 0 = the base model (LoRA B = 0)
+                    pts = [(0.0, b, base[0].get(f"{k}_lo", np.nan), base[0].get(f"{k}_hi", np.nan))] + pts
                 x, y, lo, hi = map(np.array, zip(*pts))
-                ax.plot(x, y, marker=".", label=run)
+                c = ps.run_color(run)
+                ax.plot(x, y, color=c, lw=2, marker="o", ms=3.5, mew=0, label=ps.run_label(run))
                 if np.isfinite(lo).any():
-                    ax.fill_between(x, lo, hi, alpha=0.15)
-            if base and np.isfinite(base[0][k]):
-                ax.axhline(base[0][k], ls="--", c="k", lw=1, label="base")
+                    ax.fill_between(x, lo, hi, color=c, alpha=0.12, lw=0)
+            if b is not None:
+                ax.axhline(b, color=ps.BASE, lw=1.5, ls=(0, (4, 3)), label="base model (R0)")
+            if k != "text_dev_loss":
+                ax.set_ylim(-0.02, 1.02)
+                ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
             ax.set_title(title)
             ax.set_xlabel("epoch")
-        axes[0].legend(fontsize=7)
-        fig.suptitle(s)
-        fig.tight_layout()
-        fig.savefig(out / f"curves_{s}.png", dpi=120)
+        seen = {}
+        for ax in axes:
+            for h, l in zip(*ax.get_legend_handles_labels()):
+                seen.setdefault(l, h)
+        if seen:
+            fig.legend(list(seen.values()), list(seen), loc="upper right", ncol=len(seen),
+                       bbox_to_anchor=(0.995, 1.0))
+        fig.suptitle(f"{s}: behavior vs epoch by peak LR (shaded: 95% bootstrap CI over episodes)",
+                     x=0.01, ha="left", fontsize=11, fontweight="bold", color=ps.INK)
+        fig.tight_layout(rect=(0, 0, 1, 0.9))
+        fig.savefig(out / f"curves_{s}.png", dpi=150)
         plt.close(fig)
 
 
@@ -212,7 +226,7 @@ def main():
             r[f"{k}_lo"], r[f"{k}_hi"] = lo, hi
         table.append(r)
         print(f"{run:22} {s:14} {ckpt:18} ep {r['epoch']:5.1f}  viol {fmt(m['hold_violated'], *ci['hold_violated'])}  "
-              f"on time {fmt(m['on_time'], *ci['on_time'])}  ord {fmt(m['ord_first_responded'], *ci['ord_first_responded'])}")
+              f"on time {fmt(m['on_time'], *ci['on_time'])}  ord {fmt(m['ord_responded'], *ci['ord_responded'])}")
     if not table:
         raise SystemExit(f"no scores.jsonl under {a.root}")
     keys = list(table[0])
@@ -222,16 +236,18 @@ def main():
         w.writerows(table)
 
     md = ["| run | set | ckpt | epoch | hold violated | resumed on time | no onset | talking through | "
-          "cue latency (s) | B1 abs timer err (s) | ordinary answered | barge-in | text dev loss |",
-          "|" + "---|" * 13]
+          "cue latency (s) | B1 abs timer err (s) | ordinary answered (all) | ordinary answered (1st turn) | "
+          "words in hold | barge-in | text dev loss |",
+          "|" + "---|" * 15]
     for r in sorted(table, key=lambda r: (r["set"], r["run"], r["epoch"] if np.isfinite(r["epoch"]) else -1)):
         md.append(f"| {r['run']} | {r['set']} | {r['ckpt']} | {r['epoch']:.1f} | "
                   f"{fmt(r['hold_violated'], r['hold_violated_lo'], r['hold_violated_hi'])} | "
                   f"{fmt(r['on_time'], r['on_time_lo'], r['on_time_hi'])} | {fmt(r['no_onset'])} | "
                   f"{fmt(r['talking_through'])} | {fmt(r['cue_latency_med'], pct=False)} | "
                   f"{fmt(r['timer_abs_err_med'], pct=False)} | "
+                  f"{fmt(r['ord_responded'], r['ord_responded_lo'], r['ord_responded_hi'])} | "
                   f"{fmt(r['ord_first_responded'], r['ord_first_responded_lo'], r['ord_first_responded_hi'])} | "
-                  f"{fmt(r['barge_in'])} | {fmt(r['text_dev_loss'], pct=False)} |")
+                  f"{r['words_in_hold']:.1f} | {fmt(r['barge_in'])} | {fmt(r['text_dev_loss'], pct=False)} |")
     (out / "summary.md").write_text("\n".join(md) + "\n")
     plot(table, out)
 
@@ -242,7 +258,7 @@ def main():
                 for v in values:
                     m = metrics(rescore(p.parent, replace(Thresholds(), **{field: v})))
                     sens.append({"run": run, "set": s, "ckpt": ckpt, "field": field, "value": v,
-                                 **{k: m[k] for k in ("hold_violated", "on_time", "ord_first_responded")}})
+                                 **{k: m[k] for k in ("hold_violated", "on_time", "ord_responded", "ord_first_responded")}})
         with (out / "sensitivity.csv").open("w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=list(sens[0]))
             w.writeheader()

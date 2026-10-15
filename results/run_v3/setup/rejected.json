@@ -1,0 +1,79 @@
+[
+ {
+  "id": "tr_000211",
+  "type": "B2_std",
+  "fails": [
+   "a human turn is only 4.8 dB over the floor"
+  ]
+ },
+ {
+  "id": "tr_000233",
+  "type": "B1_std",
+  "fails": [
+   "user overlaps Moshi by 0.06s at 40.9s"
+  ]
+ },
+ {
+  "id": "tr_000596",
+  "type": "B1_double",
+  "fails": [
+   "Moshi word times off from audio onset by up to -1.00s"
+  ]
+ },
+ {
+  "id": "tr_000822",
+  "type": "B1_double",
+  "fails": [
+   "Moshi word times off from audio onset by up to -1.01s"
+  ]
+ },
+ {
+  "id": "tr_001482",
+  "type": "B1_double",
+  "fails": [
+   "Moshi word times off from audio onset by up to -1.00s"
+  ]
+ },
+ {
+  "id": "tr_001813",
+  "type": "B1_double",
+  "fails": [
+   "Moshi word times off from audio onset by up to -1.00s"
+  ]
+ },
+ {
+  "id": "tr_002180",
+  "type": "B1_double",
+  "fails": [
+   "Moshi word times off from audio onset by up to -1.00s"
+  ]
+ },
+ {
+  "id": "tr_002502",
+  "type": "DECOY",
+  "fails": [
+   "Moshi word times off from audio onset by up to -0.26s"
+  ]
+ },
+ {
+  "id": "tr_003308",
+  "type": "B1_double",
+  "fails": [
+   "Moshi word times off from audio onset by up to -1.01s"
+  ]
+ },
+ {
+  "id": "tr_004697",
+  "type": "B1_rescind",
+  "fails": [
+   "user overlaps Moshi by 0.29s at 17.0s"
+  ]
+ },
+ {
+  "id": "tr_004869",
+  "type": "B1_std",
+  "fails": [
+   "Moshi word times off from audio onset by up to -1.00s"
+  ]
+ }
+]

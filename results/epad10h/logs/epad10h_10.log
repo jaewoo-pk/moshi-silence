@@ -1,0 +1,8 @@
+05:34:38 [epad10h] loss-weights patch present
+05:34:40 [epad10h] free space: 104G in runs/ (volume 250 GB)
+configs/R20_10h_lr5e-05_epad3.yaml  lr=5e-05  345 steps, 21 checkpoints
+configs/R21_10h_lr5e-05_epad10.yaml  lr=5e-05  345 steps, 21 checkpoints
+05:34:40 [epad10h] training: R21_10h_lr5e-05_epad10 on GPUs 0
+06:48:58 [epad10h] training finished: 1 done, 0 failed
+06:48:58 [epad10h] dev_80 generation evals, one run per GPU
+07:11:36 [epad10h] EPAD 10 h (10): all training and evals done

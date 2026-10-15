@@ -1,0 +1,28 @@
+excluded 207 packs used in ['data/dev']
+plan hash 0087b152f6eb (5600 episodes; every shard must print the same)
+missing clips by engine: {'fish': 3526, 'pocket': 4107, 'el': 715} | est. speech h: {'fish': 2.91, 'pocket': 3.97, 'el': 0.56}
+rendering 4107 clips on 18 workers ...
+  200/4107 clips  14.3 min audio  5.0x realtime  elapsed 2.9 min  ETA 56.0 min
+  400/4107 clips  26.2 min audio  7.7x realtime  elapsed 3.4 min  ETA 31.5 min
+  600/4107 clips  40.9 min audio  10.1x realtime  elapsed 4.1 min  ETA 23.7 min
+  800/4107 clips  54.6 min audio  11.8x realtime  elapsed 4.6 min  ETA 19.1 min
+  1000/4107 clips  68.3 min audio  13.2x realtime  elapsed 5.2 min  ETA 16.1 min
+  1200/4107 clips  81.0 min audio  14.2x realtime  elapsed 5.7 min  ETA 13.8 min
+  1400/4107 clips  93.6 min audio  14.8x realtime  elapsed 6.3 min  ETA 12.2 min
+  1600/4107 clips  110.0 min audio  15.7x realtime  elapsed 7.0 min  ETA 11.0 min
+  1800/4107 clips  124.0 min audio  16.4x realtime  elapsed 7.6 min  ETA 9.7 min
+  2000/4107 clips  137.6 min audio  17.1x realtime  elapsed 8.0 min  ETA 8.5 min
+  2200/4107 clips  151.7 min audio  17.7x realtime  elapsed 8.6 min  ETA 7.4 min
+  2400/4107 clips  163.5 min audio  18.2x realtime  elapsed 9.0 min  ETA 6.4 min
+  2600/4107 clips  179.9 min audio  18.8x realtime  elapsed 9.6 min  ETA 5.6 min
+  2800/4107 clips  194.1 min audio  19.1x realtime  elapsed 10.2 min  ETA 4.7 min
+WARNING:pocket_tts_timestamped.models.tts_model:Maximum generation length reached without EOS, this very often indicates an error.
+WARNING:pocket_tts_timestamped.models.tts_model:Maximum generation length reached without EOS, this very often indicates an error.
+  3000/4107 clips  208.0 min audio  19.6x realtime  elapsed 10.6 min  ETA 3.9 min
+  3200/4107 clips  223.0 min audio  19.8x realtime  elapsed 11.2 min  ETA 3.2 min
+  3400/4107 clips  240.2 min audio  20.2x realtime  elapsed 11.9 min  ETA 2.5 min
+  3600/4107 clips  254.7 min audio  20.6x realtime  elapsed 12.3 min  ETA 1.7 min
+  3800/4107 clips  266.4 min audio  20.9x realtime  elapsed 12.7 min  ETA 1.0 min
+  4000/4107 clips  279.6 min audio  21.2x realtime  elapsed 13.2 min  ETA 0.4 min
+  4107/4107 clips  285.3 min audio  21.4x realtime  elapsed 13.3 min  ETA 0.0 min
+render-only shard done

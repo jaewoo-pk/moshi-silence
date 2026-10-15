@@ -1,0 +1,18 @@
+  scored 20
+  scored 40
+  scored 60
+  scored 80
+wrote /workspace/eval/test/test_distract/checkpoint_000153/scores.jsonl
+episodes 90; holds 90 (timer 0, cue 90)
+hold violated          1.1% (n=90)
+talking through        2.2% (n=90)
+resume on time        95.6% (n=90)
+  no onset in window   4.4% (n=90)
+  cue latency        median +0.65 s, p90 0.87 s (n=86)
+  timer error        n/a
+words in hold (incl. ack): mean 2.3
+ordinary responded      n/a; first turn    n/a; n/a
+barge-in                n/a
+interrupt onsets     0 in 90 episodes
+distractor triggered D1a 0% (115)  D1b 0% (33)  D1c 0% (9)  D2a 0% (61)  D2b 0% (29)  D3a 0% (61)  D3b 0% (29)  D4 0% (18)
+speech after distr.  D1a 0% (115)  D1b 0% (33)  D1c 0% (9)  D2a 0% (61)  D2b 0% (29)  D3a 0% (61)  D3b 0% (29)  D4 0% (18)

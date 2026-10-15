@@ -1,0 +1,18 @@
+  scored 20
+  scored 40
+  scored 60
+  scored 80
+wrote /workspace/eval/R4_1h_lr0.0002/dev_80/checkpoint_000021/scores.jsonl
+episodes 80; holds 63 (timer 18, cue 45)
+hold violated          3.4% (n=58)
+talking through        3.2% (n=63)
+resume on time        14.3% (n=63)
+  no onset in window  85.7% (n=63)
+  cue latency        median +1.53 s, p90 2.54 s (n=9)
+  timer error        n/a
+words in hold (incl. ack): mean 0.7
+ordinary responded    28.6% (n=42); first turn  40.0% (n=20); median +0.93 s, p90 1.47 s (n=8)
+barge-in              16.7% (n=6)
+interrupt onsets     0 in 80 episodes
+distractor triggered D1a 3% (35)  D1b 0% (10)  D1c 0% (3)  D2a 0% (9)  D2b 0% (12)  D2c 0% (5)  D3a 0% (20)  D3b 0% (11)
+speech after distr.  D1a 0% (35)  D1b 0% (10)  D1c 0% (3)  D2a 0% (9)  D2b 0% (12)  D2c 0% (5)  D3a 0% (20)  D3b 0% (11)

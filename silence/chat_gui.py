@@ -51,6 +51,10 @@ chmod +x /root/load.sh'''
 
 # Representative models for live testing (dev_80 numbers), each with what it's good / bad at.
 CURATED = [
+    ("R24_v3_b1-15_lr5e-05_epad10/checkpoint_000527", "45h model (v3 data, EPAD ×10): final",
+     "Best model overall: dev 0.94 (97% silent / 92% speaks), best or tied on 4 of 7 held-out suites, and the most "
+     "robust to a real voice (0.83 on my recordings). Weak spots: the friend saying \"I'm back\", keyword releases, "
+     "minute-long holds."),
     ("R21_10h_lr5e-05_epad10/checkpoint_000153", "10 h, EPAD ×10: best checkpoint (ep 2.2)",
      "Highest dev_80 score so far (0.91). Speaks when it should (93%: answers every question, resumes on every "
      "\"I'm back\" cue) and re-asks after \"give me N seconds\" 61% of the time. Silence 90%: what it loses is in "
@@ -58,6 +62,9 @@ CURATED = [
     ("R21_10h_lr5e-05_epad10/checkpoint_000345", "10 h, EPAD ×10: final checkpoint (ep 5.0)",
      "Same run, fully annealed (score 0.90). Re-asks after timed holds most often of any model (78%) and speaks "
      "95% of the time when due; silence slips to 84%, again almost entirely in timed holds."),
+    ("R22_50h_lr5e-05_epad10/checkpoint_000345", "50 h (v2 data), EPAD ×10: final (1 epoch)",
+     "Trained on the 50 h set (more timed holds, 3 TTS engines). Speaks readily (93–97%) and re-asks after timed holds, "
+     "but jumps in after pauses: it often talks after the first option or a short silence (test_all 0.80 vs 0.84 for R21)."),
     ("R8_10h_lr2e-05/checkpoint_000289", "Best 10 h (EPAD ×1)",
      "Most reliable silence (97%) and ignores return-cue lookalikes (\"I'm done…\"). A bit cautious about speaking "
      "again (79%); won't re-ask after \"give me N seconds\"."),
@@ -111,6 +118,12 @@ def load_models(results_dirs):
                            "timed": (speak.get((run, ck)) or {}).get("tim_any"), "color": ps.run_color(run),
                            "remote": f"{REMOTE_RUNS}/{run}/checkpoints/{ck}"}
     for i, (key, title, note) in enumerate(CURATED):
+        if key not in models and key != "base":  # curated but no eval summary yet (e.g. a fresh run)
+            run, ck = key.split("/")
+            models[key] = {"key": key, "run": run, "ckpt": ck, "lr": ps.run_lr(run), "epoch": None, "data": "",
+                           "label": title, "viol": None, "on_time": None, "ord": None, "score": None,
+                           "silent_due": None, "speaks_due": None, "timed": None, "color": ps.run_color(run),
+                           "remote": f"{REMOTE_RUNS}/{run}/checkpoints/{ck}"}
         if key in models:
             models[key].update(curated=i, title=title, note=note)
     return models

@@ -1,0 +1,21 @@
+loaded + prepared in 51 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+checkpoint_000345: 90 episodes in 104 s (34 ms/step) -> /workspace/eval/test_R22/test_script/checkpoint_000345
+all done in 155 s
+loaded + prepared in 48 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+checkpoint_000345: 90 episodes in 101 s (31 ms/step) -> /workspace/eval/test_R22/test_word/checkpoint_000345
+all done in 149 s
+loaded + prepared in 48 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+checkpoint_000345: 90 episodes in 104 s (33 ms/step) -> /workspace/eval/test_R22/test_voice/checkpoint_000345
+all done in 152 s
+loaded + prepared in 50 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+checkpoint_000345: 90 episodes in 129 s (31 ms/step) -> /workspace/eval/test_R22/test_distract/checkpoint_000345
+all done in 179 s
+loaded + prepared in 46 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+checkpoint_000345: 90 episodes in 145 s (34 ms/step) -> /workspace/eval/test_R22/test_cond/checkpoint_000345
+all done in 190 s
+loaded + prepared in 40 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+checkpoint_000345: 90 episodes in 62 s (30 ms/step) -> /workspace/eval/test_R22/test_ordinary/checkpoint_000345
+all done in 103 s
+loaded + prepared in 38 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+checkpoint_000345: 90 episodes in 99 s (32 ms/step) -> /workspace/eval/test_R22/test_all/checkpoint_000345
+all done in 138 s

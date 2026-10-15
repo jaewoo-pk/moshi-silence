@@ -290,21 +290,41 @@ Bottom strip = Moshi's text stream as built by moshi-finetune's Interleaver: gre
 {''.join(rows)}""")
 
 
+_WK = {}
+
+
+def _init_worker(finetune, spm):
+    _WK["il"], _WK["tok"] = load_interleaver(finetune, spm)
+
+
+def _check_one(w):
+    r, toks, d, audio = check_episode(w, _WK["il"], _WK["tok"])
+    return r, None, d, None  # toks / audio only needed for plots
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("data_dir")
     ap.add_argument("--finetune", default="../moshi-finetune", help="path to a kyutai-labs/moshi-finetune checkout")
     ap.add_argument("--spm", default=None)
     ap.add_argument("--plots", action="store_true")
+    ap.add_argument("--workers", type=int, default=1, help="parallel processes (no --plots)")
     a = ap.parse_args()
     out = Path(a.data_dir)
-    il, tok = load_interleaver(a.finetune, a.spm)
     wavs = sorted((out / "episodes").glob("*.wav"))
     results = []
     if a.plots:
         (out / "plots").mkdir(exist_ok=True)
-    for w in wavs:
-        r, toks, d, audio = check_episode(w, il, tok)
+    if a.workers > 1 and not a.plots:
+        from multiprocessing import get_context
+        with get_context("spawn").Pool(a.workers, _init_worker, (a.finetune, a.spm)) as pool:
+            checked = pool.imap(_check_one, wavs, chunksize=8)
+            checked = list(checked)
+    else:
+        il, tok = load_interleaver(a.finetune, a.spm)
+        checked = (check_episode(w, il, tok) for w in wavs)
+    for w, res in zip(wavs, checked):
+        r, toks, d, audio = res
         results.append((r, d))
         flag = "ok  " if r["ok"] else "FAIL"
         extra = "" if r["ok"] else "  <- " + "; ".join(r["fails"])

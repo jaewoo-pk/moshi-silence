@@ -1,0 +1,6 @@
+/workspace/moshi-finetune/.venv/lib/python3.12/site-packages/moshi/models/loaders.py:174: UserWarning: Repository kyutai/moshiko-pytorch-bf16 contains no config.json. Assuming this is a Moshi 7B. Support for such repository might be removed in the future.
+  warnings.warn(
+episode dv_000000: 334 frames
+user shift 0: input columns identical to training 0.3%; text logits: argmax agreement 99.4%, max|dlogit| median 0.750 p99 4.750 (bf16 streaming vs full forward); script text CE 0.491 vs 0.490
+user shift 1: input columns identical to training 100.0%; text logits: argmax agreement 99.7%, max|dlogit| median 0.094 p99 0.232 (bf16 streaming vs full forward); script text CE 0.491 vs 0.490
+=> shift 1 matches training (every input column identical)

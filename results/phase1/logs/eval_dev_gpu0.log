@@ -1,0 +1,5 @@
+01:00:31 GPU 0: R3_1h_lr5e-05 on dev_80 (log: /workspace/logs/eval/R3_1h_lr5e-05_dev_80.log)
+01:19:39 GPU 0: R3_1h_lr5e-05 done (exit 0)
+01:19:39 GPU 0: R4_1h_lr0.0002 on dev_80 (log: /workspace/logs/eval/R4_1h_lr0.0002_dev_80.log)
+01:40:02 GPU 0: R4_1h_lr0.0002 done (exit 0)
+01:40:02 all evals finished

@@ -3,11 +3,13 @@
 # volume at /workspace, so a 4x pod mounting the same volume can train right away
 # (scripts/run_parallel.sh).
 #
-# On the pod first (RunPod images may lack rsync): apt-get update && apt-get install -y rsync
-# Then from the Mac: code from the branch worktree, data/ from the main checkout (no .env):
-#   rsync -a --exclude .git --exclude demo --exclude __pycache__ --exclude .DS_Store \
+# runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404 already has rsync (other images:
+# apt-get update && apt-get install -y rsync). From the Mac: code from the branch worktree,
+# data/ from the main checkout (no .env). -rlpt, not -a: the network volume refuses chown, so
+# -a copies everything but exits 23.
+#   rsync -rlpt --exclude .git --exclude demo --exclude __pycache__ --exclude .DS_Store \
 #       ~/repo/moshi-silence/.claude/worktrees/docs-progress/ box:/workspace/moshi-silence/
-#   rsync -a --exclude .DS_Store ~/repo/moshi-silence/data/ box:/workspace/moshi-silence/data/  # ~6.2 GB
+#   rsync -rlpt --exclude .DS_Store ~/repo/moshi-silence/data/ box:/workspace/moshi-silence/data/  # ~6.2 GB
 #   ssh box 'bash /workspace/moshi-silence/scripts/gpu_bootstrap.sh'
 # `box` = an ssh config alias for the pod's exposed SSH port (or rsync -e "ssh -p PORT").
 # Re-syncing data/ later puts relative jsonl paths back; rerun this script afterwards.
@@ -24,7 +26,7 @@ MOSHI_REV=${MOSHI_REV:-2bfc9ae6e89079a5cc7ed2a68436010d91a3d289}  # kyutai/moshi
 MOSHI_DIR=$W/moshiko
 PY=$MF/.venv/bin
 
-echo "== 1. moshi-finetune @ ${MF_COMMIT:0:7} + 3 patches, env from its uv.lock"
+echo "== 1. moshi-finetune @ ${MF_COMMIT:0:7} + 4 patches, env from its uv.lock"
 [ -d "$MF" ] || git clone https://github.com/kyutai-labs/moshi-finetune "$MF"
 git -C "$MF" checkout -q "$MF_COMMIT"
 apply() {  # $1 = patch, $2 = a string the patched tree contains
@@ -34,6 +36,7 @@ apply() {  # $1 = patch, $2 = a string the patched tree contains
 apply moshi-finetune-audio-mask.patch mask_main_speech_audio
 apply moshi-finetune-eval-reload.patch make_eval_loader
 apply moshi-finetune-text-tail.patch "Past the end of the file the audio is zero padding"
+apply moshi-finetune-loss-weights.patch "text_epad_weight"  # 4th (2026-10-15): optional EPAD / audio loss weights
 # pyproject pins sphn==0.1.12 but takes moshi from git main, which now needs sphn>=0.2, so a
 # plain `pip install -e .` can't resolve. uv.lock pins the tested set (moshi 061cc4c =
 # 0.2.4a1, sphn 0.1.12, torch 2.6.0, huggingface-hub 0.28.1).
@@ -44,7 +47,15 @@ apply moshi-finetune-text-tail.patch "Past the end of the file the audio is zero
 export UV_INSTALL_DIR=$W/bin UV_PYTHON_INSTALL_DIR=$W/uv-python UV_CACHE_DIR=$W/uv-cache \
        UV_PYTHON_PREFERENCE=only-managed UV_PYTHON=3.12 UV_NO_MODIFY_PATH=1 PATH="$W/bin:$PATH"
 [ -x "$W/bin/uv" ] || curl -LsSf https://astral.sh/uv/install.sh | sh
-(cd "$MF" && uv sync --frozen)
+# openai-whisper 20240930 (via whisper-timestamped) is an sdist whose setup.py imports
+# pkg_resources. Build isolation takes the newest setuptools (84 on 2026-10-14), which no longer
+# has it, so a plain sync fails. Neither UV_BUILD_CONSTRAINT nor build-constraint-dependencies
+# in a uv.toml took effect under `uv sync --frozen` (uv 0.13.1), and a project uv.toml would
+# replace moshi-finetune's own [tool.uv]. So: sync everything else (that installs the locked
+# setuptools 78.1.0, which has pkg_resources), then build whisper against the env without
+# isolation. Verified on an H100 pod, 2026-10-14.
+(cd "$MF" && uv sync --frozen --no-install-package openai-whisper)
+(cd "$MF" && uv sync --frozen --no-build-isolation-package openai-whisper)
 # Eval only (silence/eval_score.py VAD). uv sync removes it again on a rerun; reinstalled here.
 (cd "$MF" && uv pip install silero-vad==6.2.3)
 (cd "$MF" && uv pip freeze) > "$W/pip-freeze.txt"   # exact environment, for the report

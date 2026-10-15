@@ -1,0 +1,4 @@
+05:33:41 1 GPUs [0], 1 configs
+05:33:41 start R20_10h_lr5e-05_epad3 on GPU 0 (log: /workspace/logs/R20_10h_lr5e-05_epad3.log)
+06:49:59 done  R20_10h_lr5e-05_epad3 (GPU 0, 76 min)
+06:49:59 all finished; failed: none

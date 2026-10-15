@@ -1,0 +1,9 @@
+02:35:14 [p2] configs
+configs/R8_10h_lr2e-05.yaml  lr=2e-05  345 steps, 21 checkpoints
+configs/R9_10h_lr5e-05.yaml  lr=5e-05  345 steps, 21 checkpoints
+configs/R10_10h_lr0.0002.yaml  lr=0.0002  345 steps, 21 checkpoints
+configs/R11_10h_lr0.0005.yaml  lr=0.0005  345 steps, 21 checkpoints
+02:35:14 [p2] training: R8_10h_lr2e-05 R9_10h_lr5e-05 R10_10h_lr0.0002 R11_10h_lr0.0005 on GPUs 0 1 2 3
+03:44:51 [p2] training finished: 4 done, 0 failed
+03:44:51 [p2] dev_80 generation evals, one run per GPU
+04:06:41 [p2] phase 2: all training and evals done

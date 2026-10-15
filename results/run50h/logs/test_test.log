@@ -1,0 +1,35 @@
+loaded + prepared in 57 s; 3 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+base: 90 episodes in 136 s (47 ms/step) -> /workspace/eval/test/test_script/base
+checkpoint_000153: 90 episodes in 128 s (43 ms/step) -> /workspace/eval/test/test_script/checkpoint_000153
+checkpoint_000042: 90 episodes in 134 s (46 ms/step) -> /workspace/eval/test/test_script/checkpoint_000042
+all done in 454 s
+loaded + prepared in 55 s; 3 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+base: 90 episodes in 144 s (47 ms/step) -> /workspace/eval/test/test_word/base
+checkpoint_000153: 90 episodes in 139 s (45 ms/step) -> /workspace/eval/test/test_word/checkpoint_000153
+checkpoint_000042: 90 episodes in 138 s (45 ms/step) -> /workspace/eval/test/test_word/checkpoint_000042
+all done in 477 s
+loaded + prepared in 57 s; 3 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+base: 90 episodes in 141 s (46 ms/step) -> /workspace/eval/test/test_voice/base
+checkpoint_000153: 90 episodes in 132 s (44 ms/step) -> /workspace/eval/test/test_voice/checkpoint_000153
+checkpoint_000042: 90 episodes in 137 s (46 ms/step) -> /workspace/eval/test/test_voice/checkpoint_000042
+all done in 466 s
+loaded + prepared in 58 s; 3 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+base: 90 episodes in 182 s (47 ms/step) -> /workspace/eval/test/test_distract/base
+checkpoint_000153: 90 episodes in 175 s (46 ms/step) -> /workspace/eval/test/test_distract/checkpoint_000153
+checkpoint_000042: 90 episodes in 178 s (47 ms/step) -> /workspace/eval/test/test_distract/checkpoint_000042
+all done in 592 s
+loaded + prepared in 96 s; 3 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+base: 90 episodes in 194 s (48 ms/step) -> /workspace/eval/test/test_cond/base
+checkpoint_000153: 90 episodes in 188 s (46 ms/step) -> /workspace/eval/test/test_cond/checkpoint_000153
+checkpoint_000042: 90 episodes in 188 s (47 ms/step) -> /workspace/eval/test/test_cond/checkpoint_000042
+all done in 666 s
+loaded + prepared in 95 s; 3 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+base: 90 episodes in 93 s (46 ms/step) -> /workspace/eval/test/test_ordinary/base
+checkpoint_000153: 90 episodes in 87 s (44 ms/step) -> /workspace/eval/test/test_ordinary/checkpoint_000153
+checkpoint_000042: 90 episodes in 86 s (43 ms/step) -> /workspace/eval/test/test_ordinary/checkpoint_000042
+all done in 361 s
+loaded + prepared in 51 s; 3 checkpoint(s) x 90 episodes x 1 sample(s), batch 20
+base: 90 episodes in 138 s (46 ms/step) -> /workspace/eval/test/test_all/base
+checkpoint_000153: 90 episodes in 130 s (43 ms/step) -> /workspace/eval/test/test_all/checkpoint_000153
+checkpoint_000042: 90 episodes in 135 s (46 ms/step) -> /workspace/eval/test/test_all/checkpoint_000042
+all done in 455 s

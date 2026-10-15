@@ -1,0 +1,23 @@
+loaded + prepared in 186 s; 21 checkpoint(s) x 80 episodes x 1 sample(s), batch 40
+checkpoint_000017: 80 episodes in 57 s (31 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000017
+checkpoint_000034: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000034
+checkpoint_000051: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000051
+checkpoint_000068: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000068
+checkpoint_000085: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000085
+checkpoint_000102: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000102
+checkpoint_000119: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000119
+checkpoint_000136: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000136
+checkpoint_000153: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000153
+checkpoint_000170: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000170
+checkpoint_000187: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000187
+checkpoint_000204: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000204
+checkpoint_000221: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000221
+checkpoint_000238: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000238
+checkpoint_000255: 80 episodes in 50 s (27 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000255
+checkpoint_000272: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000272
+checkpoint_000289: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000289
+checkpoint_000306: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000306
+checkpoint_000323: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000323
+checkpoint_000340: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000340
+checkpoint_000345: 80 episodes in 51 s (28 ms/step) -> /workspace/eval/R8_10h_lr2e-05/dev_80/checkpoint_000345
+all done in 1259 s

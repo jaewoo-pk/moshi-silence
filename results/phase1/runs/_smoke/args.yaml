@@ -1,0 +1,48 @@
+batch_size: 16
+ckpt_freq: 3
+data:
+  eval_data: /workspace/moshi-silence/data/dev/dev_200.jsonl
+  shuffle: true
+  train_data: /workspace/moshi-silence/data/train/train_1h.jsonl
+do_ckpt: true
+do_eval: true
+duration_sec: 60.0
+eval_freq: 3
+first_codebook_weight_multiplier: 100.0
+full_finetuning: false
+gradient_checkpointing: true
+log_freq: 1
+lora:
+  enable: true
+  ft_embed: false
+  rank: 64
+  scaling: 2.0
+main_speech_mask_post_sec: 0.24
+main_speech_mask_pre_sec: 0.08
+mask_main_speech_audio: true
+max_norm: 1.0
+max_steps: 6
+moshi_paths:
+  config_path: null
+  hf_repo_id: kyutai/moshiko-pytorch-bf16
+  mimi_path: /workspace/moshiko/tokenizer-e351c8d8-checkpoint125.safetensors
+  moshi_path: /workspace/moshiko/model.safetensors
+  tokenizer_path: /workspace/moshiko/tokenizer_spm_32k_3.model
+num_ckpt_keep: null
+num_microbatches: 1
+optim:
+  lr: 5.0e-05
+  pct_start: 0.05
+  weight_decay: 0.1
+overwrite_run_dir: false
+param_dtype: bfloat16
+run_dir: /workspace/runs/_smoke
+save_adapters: true
+seed: 0
+text_padding_weight: 0.5
+wandb:
+  key: null
+  offline: false
+  project: null
+  run_name: null
+world_size: 1

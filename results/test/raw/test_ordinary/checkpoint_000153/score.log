@@ -1,0 +1,16 @@
+  scored 20
+  scored 40
+  scored 60
+  scored 80
+wrote /workspace/eval/test/test_ordinary/checkpoint_000153/scores.jsonl
+episodes 90; holds 0 (timer 0, cue 0)
+hold violated           n/a
+talking through         n/a
+resume on time          n/a
+  no onset in window    n/a
+  cue latency        n/a
+  timer error        n/a
+words in hold (incl. ack): mean 0.0
+ordinary responded    97.9% (n=192); first turn  97.8% (n=90); median +0.65 s, p90 0.88 s (n=88)
+barge-in              26.7% (n=15)
+interrupt onsets     1 in 90 episodes

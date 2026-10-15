@@ -1,0 +1,59 @@
+Warning: `hf_repo_id` is set but `config_path` is None. This will load default models.
+2026-10-15 00:21:18 (UTC) - 0:00:22 - distributed - INFO - torch.cuda.device_count: 1
+2026-10-15 00:21:18 (UTC) - 0:00:22 - distributed - INFO - CUDA_VISIBLE_DEVICES: 0
+2026-10-15 00:21:18 (UTC) - 0:00:22 - distributed - INFO - local rank: 0
+2026-10-15 00:21:19 (UTC) - 0:00:23 - train - INFO - Going to init comms...
+2026-10-15 00:21:19 (UTC) - 0:00:23 - train - INFO - Run dir: /workspace/runs/R0_devloss
+[rank0]:[W1015 00:21:20.243304641 ProcessGroupNCCL.cpp:4561] [PG ID 0 PG GUID 0 Rank 0]  using GPU 0 to perform barrier as devices used by this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. Specify device_ids in barrier() to force use of a particular device, or call init_process_group() with a device_id.
+2026-10-15 00:21:21 (UTC) - 0:00:25 - train - INFO - TrainArgs: {'batch_size': 16,
+ 'ckpt_freq': 0,
+ 'data': {'eval_data': '/workspace/moshi-silence/data/dev/dev_200.jsonl',
+          'shuffle': True,
+          'train_data': '/workspace/moshi-silence/data/train/train_1h.jsonl'},
+ 'do_ckpt': False,
+ 'do_eval': True,
+ 'duration_sec': 60.0,
+ 'eval_freq': 0,
+ 'first_codebook_weight_multiplier': 100.0,
+ 'full_finetuning': False,
+ 'gradient_checkpointing': True,
+ 'log_freq': 1,
+ 'lora': {'enable': True, 'ft_embed': False, 'rank': 64, 'scaling': 2.0},
+ 'main_speech_mask_post_sec': 0.24,
+ 'main_speech_mask_pre_sec': 0.08,
+ 'mask_main_speech_audio': True,
+ 'max_norm': 1.0,
+ 'max_steps': 2,
+ 'moshi_paths': {'config_path': None,
+                 'hf_repo_id': 'kyutai/moshiko-pytorch-bf16',
+                 'mimi_path': '/workspace/moshiko/tokenizer-e351c8d8-checkpoint125.safetensors',
+                 'moshi_path': '/workspace/moshiko/model.safetensors',
+                 'tokenizer_path': '/workspace/moshiko/tokenizer_spm_32k_3.model'},
+ 'num_ckpt_keep': None,
+ 'num_microbatches': 1,
+ 'optim': {'lr': 0.0, 'pct_start': 0.05, 'weight_decay': 0.1},
+ 'overwrite_run_dir': False,
+ 'param_dtype': 'bfloat16',
+ 'run_dir': '/workspace/runs/R0_devloss',
+ 'save_adapters': True,
+ 'seed': 0,
+ 'text_padding_weight': 0.5,
+ 'wandb': {'key': None, 'offline': False, 'project': None, 'run_name': None},
+ 'world_size': 1}
+2026-10-15 00:21:21 (UTC) - 0:00:25 - train - INFO - Loading Mimi and Moshi...
+/workspace/moshi-finetune/.venv/lib/python3.12/site-packages/moshi/models/loaders.py:174: UserWarning: Repository kyutai/moshiko-pytorch-bf16 contains no config.json. Assuming this is a Moshi 7B. Support for such repository might be removed in the future.
+  warnings.warn(
+2026-10-15 00:21:27 (UTC) - 0:00:31 - finetune.wrapped_model - INFO - Converting model to dtype torch.bfloat16 ...
+2026-10-15 00:21:27 (UTC) - 0:00:31 - finetune.wrapped_model - INFO - Initializing lora layers ...
+2026-10-15 00:21:40 (UTC) - 0:00:44 - finetune.wrapped_model - INFO - Finished initialization!
+2026-10-15 00:24:34 (UTC) - 0:03:38 - train - INFO - step: 000001 - done (%): 50.0 - loss: 1.027 - lr: 0.0e+00 - peak_alloc_mem (GB): 27.7 - alloc_mem (GB): 18.7 - words_per_second: 2313.7 - avg_words_per_second: 2313.7 - ETA: >2026-10-15 00:25:21 - text_loss: 0.564 - audio_loss: 0.462
+2026-10-15 00:25:24 (UTC) - 0:04:28 - eval - INFO - Eval finished!
+2026-10-15 00:25:24 (UTC) - 0:04:28 - train - INFO - step: 000002 - eval_perplexity: 1.905 - eval_loss: 0.930 - train_loss: 0.982 - text_eval_loss: 0.537 - audio_eval_loss: 0.393
+2026-10-15 00:25:24 (UTC) - 0:04:29 - train - INFO - step: 000002 - done (%): 100.0 - loss: 0.982 - lr: 0.0e+00 - peak_alloc_mem (GB): 29.1 - alloc_mem (GB): 18.7 - words_per_second: 2139.6 - avg_words_per_second: 2223.2 - ETA: >2026-10-15 00:25:24 - text_loss: 0.591 - audio_loss: 0.391
+2026-10-15 00:25:24 (UTC) - 0:04:29 - train - INFO - done!
+2026-10-15 00:25:24 (UTC) - 0:04:29 - utils - INFO - Closing: eval_logger
+2026-10-15 00:25:24 (UTC) - 0:04:29 - utils - INFO - Closed: eval_logger
+2026-10-15 00:25:24 (UTC) - 0:04:29 - utils - INFO - Closing: metrics_logger
+2026-10-15 00:25:25 (UTC) - 0:04:29 - utils - INFO - Closed: metrics_logger
+2026-10-15 00:25:25 (UTC) - 0:04:29 - train - INFO - Closed everything!
+[rank0]:[W1015 00:25:25.317475002 ProcessGroupNCCL.cpp:1496] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())

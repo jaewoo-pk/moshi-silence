@@ -1,0 +1,44 @@
+# R3_1h_lr5e-05: phase 1
+# 113 train episodes, 20 epochs = 142 steps at batch 16;
+# checkpoint + dev loss every 7 steps (~0.99 epochs)
+data:
+  train_data: /workspace/moshi-silence/data/train/train_1h.jsonl
+  eval_data: /workspace/moshi-silence/data/dev/dev_200.jsonl
+  shuffle: true
+
+moshi_paths:
+  hf_repo_id: kyutai/moshiko-pytorch-bf16
+  moshi_path: /workspace/moshiko/model.safetensors
+  mimi_path: /workspace/moshiko/tokenizer-e351c8d8-checkpoint125.safetensors
+  tokenizer_path: /workspace/moshiko/tokenizer_spm_32k_3.model
+
+full_finetuning: false
+lora:
+  enable: true
+  rank: 64
+  scaling: 2.
+  ft_embed: false
+
+first_codebook_weight_multiplier: 100.
+text_padding_weight: .5
+mask_main_speech_audio: true
+
+duration_sec: 60
+batch_size: 16
+max_steps: 6
+gradient_checkpointing: true
+optim:
+  lr: 5.000000e-05
+  weight_decay: 0.1
+  pct_start: 0.05
+
+seed: 0
+log_freq: 1
+eval_freq: 3
+do_eval: true
+do_ckpt: true
+ckpt_freq: 3
+num_ckpt_keep: null
+save_adapters: true
+
+run_dir: /workspace/runs/_smoke

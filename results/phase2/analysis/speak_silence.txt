@@ -1,0 +1,7 @@
+n: silence-scored holds 58, cue releases 45, timer releases 18, ordinary 42
+run              | silent-when-due  speaks-when-due | cue: spoke / on time | timer: spoke / on time  med err | ordinary   (plateau ep 10-20)
+R0               |    14%             45%  |   51% /  47%      |   33% /  22%   +0.08N |  43%
+R8_10h_lr2e-05   |   nan%            nan%  |  nan% / nan%      |  nan% / nan%   +nanN | nan%
+R9_10h_lr5e-05   |   nan%            nan%  |  nan% / nan%      |  nan% / nan%   +nanN | nan%
+R10_10h_lr0.0002 |   nan%            nan%  |  nan% / nan%      |  nan% / nan%   +nanN | nan%
+R11_10h_lr0.0005 |   nan%            nan%  |  nan% / nan%      |  nan% / nan%   +nanN | nan%

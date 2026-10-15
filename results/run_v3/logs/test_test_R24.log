@@ -1,0 +1,23 @@
+/workspace/moshi-finetune/.venv/lib/python3.12/site-packages/moshi/models/loaders.py:174: UserWarning: Repository kyutai/moshiko-pytorch-bf16 contains no config.json. Assuming this is a Moshi 7B. Support for such repository might be removed in the future.
+  warnings.warn(
+loaded + prepared in 133 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 40
+checkpoint_000527: 90 episodes in 64 s (25 ms/step) -> /workspace/eval/test_R24/test_script/checkpoint_000527
+all done in 198 s
+loaded + prepared in 64 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 40
+checkpoint_000527: 90 episodes in 61 s (22 ms/step) -> /workspace/eval/test_R24/test_word/checkpoint_000527
+all done in 125 s
+loaded + prepared in 64 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 40
+checkpoint_000527: 90 episodes in 63 s (24 ms/step) -> /workspace/eval/test_R24/test_voice/checkpoint_000527
+all done in 127 s
+loaded + prepared in 64 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 40
+checkpoint_000527: 90 episodes in 78 s (24 ms/step) -> /workspace/eval/test_R24/test_distract/checkpoint_000527
+all done in 142 s
+loaded + prepared in 65 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 40
+checkpoint_000527: 90 episodes in 82 s (24 ms/step) -> /workspace/eval/test_R24/test_cond/checkpoint_000527
+all done in 147 s
+loaded + prepared in 60 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 40
+checkpoint_000527: 90 episodes in 42 s (24 ms/step) -> /workspace/eval/test_R24/test_ordinary/checkpoint_000527
+all done in 102 s
+loaded + prepared in 65 s; 1 checkpoint(s) x 90 episodes x 1 sample(s), batch 40
+checkpoint_000527: 90 episodes in 63 s (24 ms/step) -> /workspace/eval/test_R24/test_all/checkpoint_000527
+all done in 128 s

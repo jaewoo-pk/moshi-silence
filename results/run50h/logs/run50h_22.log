@@ -1,0 +1,6 @@
+07:31:48 [run50h] volume use: 177G of 250 GB
+configs/R22_50h_lr5e-05_epad10.yaml  lr=5e-05  345 steps, 21 checkpoints
+07:31:49 [run50h] training R22_50h_lr5e-05_epad10
+09:06:52 [run50h] training finished: 1 done, 0 failed
+09:06:52 [run50h] dev_80 generation evals
+09:30:14 [run50h] run50h 22: all training and evals done

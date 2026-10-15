@@ -304,8 +304,157 @@ class PocketTTS:
         return [self._one(t, v) for t, v in items]
 
 
+# ------------------------------------------------------------------ hosted APIs (50 h build)
+def _api_key(name):
+    import os
+    if name in os.environ:
+        return os.environ[name]
+    for f in (Path("/dev/shm/silence_keys"), Path(__file__).resolve().parent.parent / ".env"):
+        if f.exists():
+            for line in f.read_text().splitlines():
+                if line.startswith(name + "="):
+                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+    raise KeyError(f"{name} not set")
+
+
+def _api_words(text, audio):
+    """Hosted engines give no word times. Only user / friend lines go through them, and
+    only their onset / offset matter (Moshi's text comes from Pocket), so word starts are
+    spread over the speech span in proportion to word length."""
+    on, off = speech_span(audio)
+    ws = text.split()
+    lens = np.array([len(w) + 1 for w in ws], float)
+    starts = on + (off - on) * np.concatenate([[0], np.cumsum(lens)[:-1]]) / lens.sum()
+    return _words_from_starts(text, list(starts), off)
+
+
+class FatalEngineError(RuntimeError):
+    """Auth / quota / balance errors: every later request would fail too, so stop the engine."""
+
+
+class _HTTPTTS:
+    """Shared request / retry / concurrency logic; subclasses build the request."""
+    concurrency = 4
+    PAD_S = 0.15  # silence around each clip so assemble.gate's margins and fades fit
+
+    def _request(self, text, voice):
+        raise NotImplementedError
+
+    # Plausible speaking rate over the speech span, in s/word (Pocket: median 0.35, p99 0.70).
+    # Outside it the engine most likely dropped, repeated or garbled words; retried, then failed.
+    RATE_OK = (0.12, 1.0)
+
+    def _check(self, text, raw):
+        if raw[:4] == b"RIFF" or raw[:4] == b"ID3\x03" or raw[:1] == b"{":
+            raise ValueError(f"not raw PCM (starts {raw[:4]!r})")
+        raw = raw[: len(raw) // 2 * 2]
+        audio = np.frombuffer(raw, "<i2").astype(np.float32) / 32768.0
+        if len(audio) < SR // 10 or np.abs(audio).max() < 1e-3:
+            raise ValueError(f"empty / silent audio ({len(audio)} samples)")
+        on, off = speech_span(audio)
+        nw = len(text.split())
+        rate = (off - on) / nw
+        if nw >= 3 and not (self.RATE_OK[0] <= rate <= self.RATE_OK[1]):
+            raise ValueError(f"implausible rate {rate:.2f} s/word over {nw} words")
+        return audio
+
+    def _one(self, text, voice):
+        import http.client
+        import time
+        import urllib.error
+        import urllib.request
+        url, headers, body = self._request(text, voice)
+        bad, last = 0, None
+        for attempt in range(40):
+            try:
+                req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers, method="POST")
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    raw = resp.read()
+                audio = self._check(text, raw)
+                pad = np.zeros(int(self.PAD_S * SR), np.float32)
+                audio = np.concatenate([pad, audio, pad])
+                return audio, _api_words(text, audio)
+            except ValueError as e:  # bad audio: resample a couple of times, then give up on the line
+                bad, last = bad + 1, e
+                if bad >= 3:
+                    raise
+            except urllib.error.HTTPError as e:
+                last = e
+                if e.code == 429 or e.code >= 500:  # rate limit / overload: wait, honour Retry-After (<= 60 s)
+                    ra = e.headers.get("Retry-After") if e.headers else None
+                    time.sleep(min(60.0, float(ra)) if ra and ra.replace(".", "").isdigit() else min(20, 1.0 * 1.5 ** min(attempt, 8)))
+                    continue
+                msg = f"{self.name} {e.code} for {voice!r}: {e.read()[:300]!r}"
+                if e.code in (401, 402, 403):  # key / quota / balance: fatal for the whole engine
+                    raise FatalEngineError(msg) from e
+                raise RuntimeError(msg) from e
+            except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError) as e:
+                last = e
+                time.sleep(min(20, 1.0 * 1.5 ** min(attempt, 8)))
+        raise RuntimeError(f"{self.name}: giving up on {text!r} / {voice}: {last!r}")
+
+    def synth_iter(self, items):
+        """Yields ((text, voice), (audio, words) | Exception) as requests complete."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        with ThreadPoolExecutor(self.concurrency) as ex:
+            futs = {ex.submit(self._one, t, v): (t, v) for t, v in items}
+            consecutive = 0
+            for f in as_completed(futs):
+                try:
+                    res = f.result()
+                    consecutive = 0
+                except FatalEngineError:
+                    for g in futs:
+                        g.cancel()
+                    raise
+                except Exception as e:  # noqa: BLE001 - recorded per clip, the build decides
+                    consecutive += 1
+                    if consecutive >= 25:  # something systemic, not one bad line
+                        for g in futs:
+                            g.cancel()
+                        raise FatalEngineError(f"{self.name}: 25 consecutive failures, last: {e!r}") from e
+                    res = e
+                yield futs[f], res
+
+    def synth_batch(self, items):
+        out = dict(self.synth_iter(items))
+        for tv in items:
+            if isinstance(out[tv], Exception):
+                raise out[tv]
+        return [out[tv] for tv in items]
+
+
+class ElevenLabsTTS(_HTTPTTS):
+    """ElevenLabs Flash v2.5, raw 24 kHz PCM. Voice = premade voice id."""
+    name = "el"
+    concurrency = 3  # Starter plan limit
+
+    def __init__(self, model="eleven_flash_v2_5"):
+        self.key, self.model = _api_key("ELEVENLABS_API_KEY"), model
+
+    def _request(self, text, voice):
+        return (f"https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=pcm_24000",
+                {"xi-api-key": self.key, "Content-Type": "application/json"},
+                {"text": text, "model_id": self.model})
+
+
+class FishTTS(_HTTPTTS):
+    """Fish Audio s2-pro, raw 24 kHz PCM. Voice = public model id (reference_id)."""
+    name = "fish"
+    concurrency = 5  # limit below $100 prepaid
+
+    def __init__(self, model="s2-pro"):
+        self.key, self.model = _api_key("FISH_API_KEY"), model
+
+    def _request(self, text, voice):
+        return ("https://api.fish.audio/v1/tts",
+                {"Authorization": f"Bearer {self.key}", "Content-Type": "application/json", "model": self.model},
+                {"text": text, "reference_id": voice, "format": "pcm", "sample_rate": SR})
+
+
 def get_backend(name, **kw):
-    return {"pocket": PocketTTS, "espeak": EspeakTTS, "kyutai": KyutaiTTS}[name](**kw)
+    return {"pocket": PocketTTS, "espeak": EspeakTTS, "kyutai": KyutaiTTS,
+            "el": ElevenLabsTTS, "fish": FishTTS}[name](**kw)
 
 
 # ------------------------------------------------------------------ cache
@@ -323,18 +472,101 @@ class ClipCache:
     def has(self, text, voice):
         return (self.root / f"{self.key(text, voice)}.json").exists()
 
+    def _write(self, t, v, audio, words):
+        """wav first, then json, each via a temp file + rename: has() (json exists) implies
+        both files are complete, even after a crash or with several writers on one volume."""
+        import os
+        k = self.key(t, v)
+        import uuid
+        tmp = self.root / f".{k}.{uuid.uuid4().hex}"
+        # Hosted engines deliver 16-bit PCM: store it losslessly as 16-bit FLAC (half the bytes
+        # to move to the training volume). Pocket clips stay float wav, as before.
+        # SILENCE_CACHE_FLAC=1 does the same for Pocket (clips rendered off the volume and uploaded).
+        ext, kw = ("flac", {"subtype": "PCM_16", "format": "FLAC"}) \
+            if hasattr(self.backend, "synth_iter") or os.environ.get("SILENCE_CACHE_FLAC") \
+            else ("wav", {"subtype": "FLOAT", "format": "WAV"})
+        sf.write(f"{tmp}.{ext}", audio, SR, **kw)
+        os.replace(f"{tmp}.{ext}", self.root / f"{k}.{ext}")
+        Path(f"{tmp}.json").write_text(json.dumps({"text": t, "voice": v, "words": words}))
+        os.replace(f"{tmp}.json", self.root / f"{k}.json")
+
     def render_missing(self, items):
+        """Returns the number rendered. Hosted engines (synth_iter) write each clip as it
+        arrives and collect failures in self.failed instead of losing the batch."""
         todo = sorted({(t, v) for t, v in items if not self.has(t, v)})
+        if hasattr(self.backend, "synth_iter"):
+            self.failed = getattr(self, "failed", [])
+            for (t, v), res in self.backend.synth_iter(todo):
+                if isinstance(res, Exception):
+                    self.failed.append((t, v, repr(res)[:300]))
+                else:
+                    self._write(t, v, *res)
+            return len(todo)
         for i0 in range(0, len(todo), 256):
             chunk = todo[i0: i0 + 256]
             for (t, v), (audio, words) in zip(chunk, self.backend.synth_batch(chunk)):
-                k = self.key(t, v)
-                sf.write(self.root / f"{k}.wav", audio, SR, subtype="FLOAT")
-                (self.root / f"{k}.json").write_text(json.dumps({"text": t, "voice": v, "words": words}))
+                self._write(t, v, audio, words)
         return len(todo)
 
     def get(self, text, voice):
         k = self.key(text, voice)
-        audio, sr = sf.read(self.root / f"{k}.wav", dtype="float32")
+        f = self.root / f"{k}.wav"
+        audio, sr = sf.read(f if f.exists() else self.root / f"{k}.flac", dtype="float32")
         assert sr == SR
         return k, audio, json.loads((self.root / f"{k}.json").read_text())["words"]
+
+
+class _Name:
+    def __init__(self, name):
+        self.name = name
+
+
+class MultiCache:
+    """Routes (text, voice) to one ClipCache per engine under root/<engine>/ by the voice's
+    prefix ("el:", "fish:", none = Pocket). Keys are engine|voice-id|text, so Pocket clips
+    keep the keys of the single-engine cache/tts/pocket."""
+
+    def __init__(self, root, backends=None, model_dir="models/pocket-tts"):
+        self.root, self.model_dir = Path(root), model_dir
+        self.backends = backends or {}
+        self.caches = {}
+
+    @staticmethod
+    def split(voice):
+        from .voices import engine_of
+        eng = engine_of(voice)
+        return eng, (voice.split(":", 1)[1] if eng != "pocket" else voice)
+
+    def _cache(self, eng, need_backend=False):
+        c = self.caches.get(eng)
+        if c is None or (need_backend and isinstance(c.backend, _Name)):
+            if need_backend:
+                b = self.backends.get(eng) or get_backend(eng, **({"model_dir": self.model_dir} if eng == "pocket" else {}))
+                self.backends[eng] = b
+            else:
+                b = _Name(eng)
+            c = self.caches[eng] = ClipCache(self.root / eng, b)
+        return c
+
+    def key(self, text, voice):
+        eng, v = self.split(voice)
+        return self._cache(eng).key(text, v)
+
+    def has(self, text, voice):
+        eng, v = self.split(voice)
+        return self._cache(eng).has(text, v)
+
+    def get(self, text, voice):
+        eng, v = self.split(voice)
+        return self._cache(eng).get(text, v)
+
+    @property
+    def failed(self):
+        return [f for c in self.caches.values() for f in getattr(c, "failed", [])]
+
+    def render_missing(self, items):
+        by = {}
+        for t, voice in items:
+            eng, v = self.split(voice)
+            by.setdefault(eng, []).append((t, v))
+        return sum(self._cache(eng, need_backend=True).render_missing(xs) for eng, xs in by.items())

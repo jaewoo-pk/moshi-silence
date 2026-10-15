@@ -1,0 +1,10 @@
+02:35:14 4 GPUs [0 1 2 3], 4 configs
+02:35:14 start R8_10h_lr2e-05 on GPU 0 (log: /workspace/logs/R8_10h_lr2e-05.log)
+02:35:14 start R9_10h_lr5e-05 on GPU 1 (log: /workspace/logs/R9_10h_lr5e-05.log)
+02:35:14 start R10_10h_lr0.0002 on GPU 2 (log: /workspace/logs/R10_10h_lr0.0002.log)
+02:35:14 start R11_10h_lr0.0005 on GPU 3 (log: /workspace/logs/R11_10h_lr0.0005.log)
+03:44:49 done  R8_10h_lr2e-05 (GPU 0, 69 min)
+03:44:51 done  R9_10h_lr5e-05 (GPU 1, 69 min)
+03:44:51 done  R10_10h_lr0.0002 (GPU 2, 69 min)
+03:44:51 done  R11_10h_lr0.0005 (GPU 3, 69 min)
+03:44:51 all finished; failed: none

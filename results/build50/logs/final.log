@@ -1,0 +1,26 @@
+07:03:06 assemble
+excluded 207 packs used in ['data/dev']
+plan hash 159aaabf0eea (5600 episodes; every shard must print the same)
+missing clips by engine: {'fish': 1} | est. speech h: {'fish': 0.0}
+dropping 1 episodes with a failed hosted-engine clip (1 clips)
+assembling 5599 episodes ...
+built 5597 episodes (51.38 h) in 6.6 min
+
+wrote 5597 episodes to /workspace/data50/train50
+redrawn for exceeding 60.0 s: {'redraw error KeyError': 2, 'B2_std (episode dropped)': 1, 'B3_std (episode dropped)': 1}
+07:09:51 check.py
+5585/5597 episodes pass
+07:11:54 filter
+kept 5585/5597 episodes (51.24 h); rejected 12
+  B1_double      Moshi                          6
+  B2_std         a                              2
+  B1_std         user                           1
+  DECOY          Moshi                          1
+  B1_rescind     user                           1
+  B1_std         Moshi                          1
+train_1h.jsonl: 110 episodes, 1.01 h
+train_10h.jsonl: 1084 episodes, 10.00 h
+train_25h.jsonl: 2724 episodes, 25.00 h
+train_50h.jsonl: 5457 episodes, 50.00 h
+17G	/workspace/data50/train50
+07:14:02 BUILD50 DONE

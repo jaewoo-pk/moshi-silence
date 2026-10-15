@@ -1,0 +1,3 @@
+06:48:58 GPU 0: R21_10h_lr5e-05_epad10 on dev_80 (log: /workspace/logs/eval/R21_10h_lr5e-05_epad10_dev_80.log)
+07:11:36 GPU 0: R21_10h_lr5e-05_epad10 done (exit 0)
+07:11:36 all evals finished

@@ -1,5 +1,14 @@
 # moshi-silence
 
+## For evaluators: where to look
+
+| What | Where |
+|---|---|
+| **Code** | This repo. Data generator in `silence/` (`specs.py`, `build.py`, `assemble.py`, `check.py`), eval harness (`eval_gen.py`, `eval_score.py`, `eval_report.py`), training configs (`make_configs.py`), GPU scripts in `scripts/`, patches to moshi-finetune in `patches/`. |
+| **LoRA weights** | Not in this repo (GitHub's 100 MB file cap). All checkpoints are on the RunPod network volume `np7c8l94dh` under `/workspace/runs/<run>/checkpoint_<step>/`. Best model: `R24_v3_b1-15_lr5e-05_epad10/checkpoint_000527` (45.6 h set, EPAD x10, lr 5e-5). Runner-up: `R21_10h_lr5e-05_epad10/checkpoint_000153` (10 h). Each is ~0.37 GB. A Hugging Face upload is pending; ask and we'll share the link. |
+| **Demo (listen)** | Human test set listening room (your voice vs. the fine-tuned models, with scored timelines): https://claude.ai/artifact/Gt3pEjHm3SZugEjFLWjjFP. Local copies: `results/demo_curated/index.html` (curated successes and failures across runs, with audio) and `results/transcripts.html` (transcript viewer). Open them from a clone. |
+| **Process document** | `docs/decisions.md`: the work-trial report, section by section (dataset, evals, 1 h LR sweep, 10 h, EPAD, 50 h) with the decisions made at each step. Supporting detail: `docs/training_record.md` (every run, numbers), `docs/report.md` (draft write-up), `results/*/summary.md` (per-phase results). |
+
 How much synthetic fine-tuning data does it take to teach Moshi (`kyutai/moshiko-pytorch-bf16`)
 when to stay silent on instruction and when to speak again? This repo generates the data
 (in the format [kyutai-labs/moshi-finetune](https://github.com/kyutai-labs/moshi-finetune)
@@ -137,12 +146,12 @@ volume at `/workspace`. Set up on a 1× H100 pod, then train on a 4× H100 pod u
 volume.
 
 ```
-# 1x pod: install rsync on the pod, upload code (from the branch worktree) + data (~6.2 GB,
-# from the main checkout), install, smoke-test. `box` = ssh alias for the pod's exposed port.
-ssh box 'apt-get update && apt-get install -y rsync'
-rsync -a --exclude .git --exclude demo --exclude __pycache__ --exclude .DS_Store \
+# 1x pod: upload code (from the branch worktree) + data (~6.2 GB, from the main checkout),
+# install, smoke-test. `box` = ssh alias for the pod's exposed port. The RunPod PyTorch image
+# has rsync; -rlpt instead of -a because the network volume refuses chown.
+rsync -rlpt --exclude .git --exclude demo --exclude __pycache__ --exclude .DS_Store \
     ~/repo/moshi-silence/.claude/worktrees/docs-progress/ box:/workspace/moshi-silence/
-rsync -a --exclude .DS_Store ~/repo/moshi-silence/data/ box:/workspace/moshi-silence/data/
+rsync -rlpt --exclude .DS_Store ~/repo/moshi-silence/data/ box:/workspace/moshi-silence/data/
 ssh box 'bash /workspace/moshi-silence/scripts/gpu_bootstrap.sh'
 
 # 4x pod, same volume: one run per GPU; the next config starts as a GPU frees up
@@ -157,8 +166,9 @@ tail -f /workspace/logs/parallel.log
 - refuses to start over a leftover `run_dir`, since an interrupted run can't resume (delete
   the `run_dir` to redo it)
 
-At upstream's measured ~12k tokens/s (≈ 9 s/step for 16 × 60 s), phase 1 takes ~1.2 h on 4×
-instead of ~2.9 h on 1×, for the same GPU-hours. The smoke run measures the real number.
+Measured on an H100 SXM (2026-10-14): ~10 s/step for 16 × 60 s, ~47 s per dev-loss pass over
+200 episodes, ~43 min per 1 h run. Phase-1 training takes ~1.5 h on 4× (vs ~4 h on 1×) for
+the same GPU-hours. Generation eval: 28 ms/step at batch 40, ≈ 70 s per checkpoint on dev_80.
 
 The bootstrap:
 1. clones moshi-finetune at upstream `2acc879f` and applies the three patches

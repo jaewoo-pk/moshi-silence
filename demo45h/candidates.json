@@ -1,0 +1,454 @@
+{
+ "1_side_conversation": [
+  {
+   "suite": "test_all",
+   "id": "te_all_000050",
+   "type": "B2_std",
+   "duration": 40.4,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 52,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.546
+    ]
+   ]
+  },
+  {
+   "suite": "test_voice",
+   "id": "te_voice_000036",
+   "type": "B2_std",
+   "duration": 46.8,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 50,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.6
+    ]
+   ]
+  },
+  {
+   "suite": "test_script",
+   "id": "te_script_000076",
+   "type": "B2_std",
+   "duration": 46.0,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 47,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.557
+    ]
+   ]
+  }
+ ],
+ "2_cue_lookalike": [
+  {
+   "suite": "test_all",
+   "id": "te_all_000036",
+   "type": "B2_std",
+   "duration": 37.2,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 46,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.508
+    ]
+   ]
+  },
+  {
+   "suite": "test_distract",
+   "id": "te_distract_000046",
+   "type": "B2_std",
+   "duration": 46.0,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 46,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     1.204
+    ]
+   ]
+  },
+  {
+   "suite": "test_distract",
+   "id": "te_distract_000068",
+   "type": "B2_std",
+   "duration": 44.3,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 45,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.736
+    ]
+   ]
+  }
+ ],
+ "3_hear_me_out_pauses": [
+  {
+   "suite": "test_distract",
+   "id": "te_distract_000067",
+   "type": "B3_std",
+   "duration": 44.1,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 52,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     1.173
+    ]
+   ]
+  },
+  {
+   "suite": "test_distract",
+   "id": "te_distract_000083",
+   "type": "B3_std",
+   "duration": 46.7,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 36,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.538
+    ]
+   ]
+  },
+  {
+   "suite": "test_distract",
+   "id": "te_distract_000034",
+   "type": "B3_std",
+   "duration": 40.3,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 35,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.507
+    ]
+   ]
+  }
+ ],
+ "4_hear_me_out_cancelled": [
+  {
+   "suite": "test_script",
+   "id": "te_script_000072",
+   "type": "B3_rescind",
+   "duration": 26.9,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 11,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.58
+    ]
+   ]
+  },
+  {
+   "suite": "test_word",
+   "id": "te_word_000051",
+   "type": "B3_rescind",
+   "duration": 23.9,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 4,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.593
+    ]
+   ]
+  },
+  {
+   "suite": "test_all",
+   "id": "te_all_000072",
+   "type": "B3_rescind",
+   "duration": 24.2,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 4,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.775
+    ]
+   ]
+  }
+ ],
+ "5_timed_hold": [
+  {
+   "suite": "test_voice",
+   "id": "te_voice_000025",
+   "type": "B1_std",
+   "duration": 41.8,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 20,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     2.545
+    ]
+   ]
+  },
+  {
+   "suite": "test_all",
+   "id": "te_all_000069",
+   "type": "B1_std",
+   "duration": 35.2,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 14,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     -1.39
+    ]
+   ]
+  },
+  {
+   "suite": "test_all",
+   "id": "te_all_000017",
+   "type": "B1_std",
+   "duration": 46.6,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 13,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     -1.447
+    ]
+   ]
+  }
+ ],
+ "6_ordinary_with_pause": [
+  {
+   "suite": "test_script",
+   "id": "te_script_000009",
+   "type": "ORD",
+   "duration": 20.7,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 10,
+   "45h_holds": []
+  },
+  {
+   "suite": "test_ordinary",
+   "id": "te_ordinary_000026",
+   "type": "ORD",
+   "duration": 28.2,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 10,
+   "45h_holds": []
+  },
+  {
+   "suite": "test_script",
+   "id": "te_script_000050",
+   "type": "ORD",
+   "duration": 17.9,
+   "45h_ok_samples": "1/1",
+   "base_words_in_hold": 5,
+   "45h_holds": []
+  }
+ ],
+ "7a_my_voice_scripted": [
+  {
+   "suite": "test_human",
+   "id": "te_all_000001",
+   "type": "B2_std",
+   "duration": 45.5,
+   "45h_ok_samples": "2/3",
+   "base_words_in_hold": 48,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     2.717
+    ]
+   ]
+  },
+  {
+   "suite": "test_human",
+   "id": "te_all_000050",
+   "type": "B2_std",
+   "duration": 47.6,
+   "45h_ok_samples": "2/3",
+   "base_words_in_hold": 33,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.016
+    ]
+   ]
+  },
+  {
+   "suite": "test_human",
+   "id": "te_all_000062",
+   "type": "B3_std",
+   "duration": 45.4,
+   "45h_ok_samples": "3/3",
+   "base_words_in_hold": 30,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.824
+    ]
+   ]
+  }
+ ],
+ "7b_my_voice_own_words": [
+  {
+   "suite": "test_human_free",
+   "id": "te_all_000062",
+   "type": "B3_std",
+   "duration": 48.8,
+   "45h_ok_samples": "3/3",
+   "base_words_in_hold": 37,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     -0.056
+    ]
+   ]
+  },
+  {
+   "suite": "test_human_free",
+   "id": "te_all_000077",
+   "type": "B2_std",
+   "duration": 49.8,
+   "45h_ok_samples": "2/3",
+   "base_words_in_hold": 31,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     -0.191
+    ]
+   ]
+  },
+  {
+   "suite": "test_human_free",
+   "id": "te_all_000028",
+   "type": "B3_rescind",
+   "duration": 28.0,
+   "45h_ok_samples": "3/3",
+   "base_words_in_hold": 17,
+   "45h_holds": [
+    [
+     "on_time",
+     false,
+     0.772
+    ]
+   ]
+  }
+ ],
+ "8a_FAIL_friend_says_im_back": [
+  {
+   "suite": "test_distract",
+   "id": "te_distract_000075",
+   "type": "B2_D4",
+   "duration": 48.3,
+   "45h_ok_samples": "0/1",
+   "base_words_in_hold": 46,
+   "45h_holds": [
+    [
+     "on_time",
+     true,
+     0.63
+    ]
+   ]
+  },
+  {
+   "suite": "test_distract",
+   "id": "te_distract_000012",
+   "type": "B2_D4",
+   "duration": 48.6,
+   "45h_ok_samples": "0/1",
+   "base_words_in_hold": 26,
+   "45h_holds": [
+    [
+     "on_time",
+     true,
+     0.512
+    ]
+   ]
+  },
+  {
+   "suite": "test_distract",
+   "id": "te_distract_000084",
+   "type": "B2_D4",
+   "duration": 49.0,
+   "45h_ok_samples": "0/1",
+   "base_words_in_hold": 44,
+   "45h_holds": [
+    [
+     "no_onset",
+     false,
+     null
+    ]
+   ]
+  }
+ ],
+ "8b_FAIL_minute_hold": [
+  {
+   "suite": "test_cond",
+   "id": "te_cond_000087",
+   "type": "B1_minutes",
+   "duration": 46.0,
+   "45h_ok_samples": "0/1",
+   "base_words_in_hold": 12,
+   "45h_holds": [
+    [
+     "on_time",
+     true,
+     0.639
+    ]
+   ]
+  },
+  {
+   "suite": "test_cond",
+   "id": "te_cond_000012",
+   "type": "B1_minutes",
+   "duration": 47.6,
+   "45h_ok_samples": "0/1",
+   "base_words_in_hold": 52,
+   "45h_holds": [
+    [
+     "on_time",
+     true,
+     -4.407
+    ]
+   ]
+  },
+  {
+   "suite": "test_cond",
+   "id": "te_cond_000042",
+   "type": "B1_minutes",
+   "duration": 48.7,
+   "45h_ok_samples": "0/1",
+   "base_words_in_hold": 17,
+   "45h_holds": [
+    [
+     "on_time",
+     true,
+     0.866
+    ]
+   ]
+  }
+ ]
+}

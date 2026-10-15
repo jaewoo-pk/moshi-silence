@@ -1,0 +1,18 @@
+  scored 20
+  scored 40
+  scored 60
+  scored 80
+wrote /workspace/eval/test/test_distract/base/scores.jsonl
+episodes 90; holds 90 (timer 0, cue 90)
+hold violated         96.7% (n=90)
+talking through       13.3% (n=90)
+resume on time        47.8% (n=90)
+  no onset in window  52.2% (n=90)
+  cue latency        median +0.15 s, p90 2.11 s (n=43)
+  timer error        n/a
+words in hold (incl. ack): mean 21.8
+ordinary responded      n/a; first turn    n/a; n/a
+barge-in                n/a
+interrupt onsets     133 in 90 episodes
+distractor triggered D1a 71% (115)  D1b 94% (33)  D1c 100% (9)  D2a 72% (61)  D2b 55% (29)  D3a 64% (61)  D3b 52% (29)  D4 78% (18)
+speech after distr.  D1a 75% (115)  D1b 91% (33)  D1c 89% (9)  D2a 69% (61)  D2b 55% (29)  D3a 74% (61)  D3b 72% (29)  D4 83% (18)

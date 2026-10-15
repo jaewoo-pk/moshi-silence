@@ -1,88 +1,82 @@
-# Human test set: behavior by model
+# Human-recorded test sets: behavior by model
 
-One speaker (s01, ~20 min of recording) voices the user side of 24 held-out `test_all` episodes; the friend and Moshi's scripted lines stay TTS. Three paired suites (same episode ids, so the same noise and friend RIR): **TTS** = the original episodes, **human** = every user line recorded verbatim, **own words** = the 16 hold episodes with the instruction and the release cue / rescind said in the speaker's own words. 3 samples per episode, VAD scoring, same definitions as `results/test/summary.md`. Cells: **score** (silent / speaks).
+Speaker s01 (the user), one mic; friend lines TTS. 3 samples per episode, common seeds. test_human_tts = the same 24 scripts with the TTS user voice (paired control). Cells: **score** (silent when due / speaks when due).
 
-## All 24 episodes
-
-| Model | TTS | human (verbatim) |
-|---|---|---|
-| base | **0.41** (24% / 58%) | **0.33** (16% / 50%) |
-| 10 h ×10 (R21 ep 2.2) | **0.83** (75% / 91%) | **0.79** (73% / 86%) |
-| 50 h ×10 (R22 step 345) | **0.79** (61% / 97%) | **0.74** (57% / 91%) |
-
-## The 16 hold episodes
-
-| Model | TTS | human (verbatim) | human (own words) |
-|---|---|---|---|
-| base | **0.40** (24% / 57%) | **0.29** (16% / 43%) | **0.28** (14% / 43%) |
-| 10 h ×10 (R21 ep 2.2) | **0.81** (75% / 88%) | **0.75** (73% / 78%) | **0.68** (65% / 71%) |
-| 50 h ×10 (R22 step 345) | **0.77** (61% / 94%) | **0.73** (57% / 88%) | **0.67** (53% / 80%) |
-
-## Paired differences (95% bootstrap CI over episodes)
-
-| Model | Comparison | episodes | score | silent when due | speaks when due |
+| Set | base | 1 h ×10 (R17) | 10 h ×10 (R21) | 50 h v2 ×10 (R22) | 45 h v3 ×10 (R24) |
 |---|---|---|---|---|---|
-| base | human − TTS | 24 | -0.08 [-0.18, +0.02] | -8 pp [-23, +8] | -9 pp [-18, +1] |
-| base | own words − verbatim | 16 | -0.01 [-0.13, +0.10] | -2 pp [-15, +9] | +0 pp [-17, +14] |
-| base | own words − TTS | 16 | -0.12 [-0.22, +0.00] | -10 pp [-19, -2] | -14 pp [-31, +6] |
-| 10 h ×10 (R21 ep 2.2) | human − TTS | 24 | -0.04 [-0.13, +0.05] | -2 pp [-15, +10] | -6 pp [-17, +4] |
-| 10 h ×10 (R21 ep 2.2) | own words − verbatim | 16 | -0.08 [-0.22, +0.06] | -8 pp [-24, +8] | -8 pp [-29, +14] |
-| 10 h ×10 (R21 ep 2.2) | own words − TTS | 16 | -0.14 [-0.25, -0.02] | -10 pp [-21, -2] | -18 pp [-40, +4] |
-| 50 h ×10 (R22 step 345) | human − TTS | 24 | -0.05 [-0.17, +0.07] | -4 pp [-22, +14] | -6 pp [-16, +3] |
-| 50 h ×10 (R22 step 345) | own words − verbatim | 16 | -0.06 [-0.17, +0.06] | -4 pp [-16, +6] | -8 pp [-25, +8] |
-| 50 h ×10 (R22 step 345) | own words − TTS | 16 | -0.11 [-0.25, +0.04] | -8 pp [-29, +11] | -14 pp [-33, +4] |
+| test_human_tts: TTS voice, same scripts (control) | **0.41** (24% / 58%) | **0.79** (69% / 90%) | **0.83** (75% / 91%) | **0.79** (61% / 97%) | **0.84** (82% / 86%) |
+| test_human: your voice, scripted | **0.33** (16% / 50%) | **0.67** (51% / 84%) | **0.79** (73% / 86%) | **0.74** (57% / 91%) | **0.83** (78% / 87%) |
+| test_human_free: your voice, own wording | **0.28** (14% / 43%) | **0.73** (71% / 75%) | **0.68** (65% / 71%) | **0.67** (53% / 80%) | **0.73** (69% / 76%) |
 
 ## Details
 
 ### test_human_tts
 
-| Metric | base | 10 h ×10 (R21 ep 2.2) | 50 h ×10 (R22 step 345) |
-|---|---|---|---|
-| silent when due (n=51) | 24% | 75% | 61% |
-| speaks when due (n=105) | 58% | 91% | 97% |
-| cue release: spoke (n=33) | 55% | 91% | 94% |
-| cue release: on time (n=33) | 55% | 91% | 94% |
-| timed re-ask (n=18) | 61% | 83% | 94% |
-| ordinary answered (n=54) | 59% | 94% | 100% |
-| reacted to D1a (n=27) | 85% | 0% | 0% |
-| reacted to D1b (n=12) | 100% | 0% | 0% |
-| reacted to D1c (n=6) | 67% | 0% | 0% |
-| reacted to D2a (n=12) | 83% | 0% | 0% |
-| reacted to D2b (n=3) | 67% | 0% | 0% |
-| reacted to D2c (n=3) | 67% | 33% | 0% |
-| reacted to D3a (n=18) | 83% | 0% | 0% |
+| Metric | base | 1 h ×10 (R17) | 10 h ×10 (R21) | 50 h v2 ×10 (R22) | 45 h v3 ×10 (R24) |
+|---|---|---|---|---|---|
+| silent when due (n=51) | 24% | 69% | 75% | 61% | 82% |
+| speaks when due (n=105) | 58% | 90% | 91% | 97% | 86% |
+| cue release: spoke (n=33) | 55% | 88% | 91% | 94% | 82% |
+| timed re-ask (n=18) | 61% | 83% | 83% | 94% | 67% |
+| ordinary answered (n=54) | 59% | 93% | 94% | 100% | 94% |
+| silent in B1_double holds (n=6) | 83% | 50% | 33% | 0% | 0% |
+| silent in B1_rescind holds (n=3) | 67% | 100% | 100% | 100% | 100% |
+| silent in B1_std holds (n=12) | 33% | 0% | 25% | 8% | 75% |
+| silent in B2_std holds (n=18) | 0% | 94% | 100% | 100% | 100% |
+| silent in B3_early holds (n=3) | 0% | 100% | 100% | 100% | 100% |
+| silent in B3_rescind holds (n=3) | 33% | 100% | 100% | 67% | 100% |
+| silent in B3_std holds (n=6) | 0% | 100% | 100% | 67% | 100% |
+| reacted to D1a (n=27) | 85% | 0% | 0% | 0% | 0% |
+| reacted to D1b (n=12) | 100% | 0% | 0% | 0% | 0% |
+| reacted to D1c (n=6) | 67% | 17% | 0% | 0% | 0% |
+| reacted to D2a (n=12) | 83% | 0% | 0% | 0% | 0% |
+| reacted to D2b (n=3) | 67% | 0% | 0% | 0% | 0% |
+| reacted to D2c (n=3) | 67% | 100% | 33% | 0% | 0% |
+| reacted to D3a (n=18) | 83% | 0% | 0% | 0% | 0% |
 
 ### test_human
 
-| Metric | base | 10 h ×10 (R21 ep 2.2) | 50 h ×10 (R22 step 345) |
-|---|---|---|---|
-| silent when due (n=51) | 16% | 73% | 57% |
-| speaks when due (n=105) | 50% | 86% | 91% |
-| cue release: spoke (n=33) | 48% | 73% | 85% |
-| cue release: on time (n=33) | 48% | 73% | 88% |
-| timed re-ask (n=18) | 33% | 89% | 94% |
-| ordinary answered (n=54) | 56% | 93% | 94% |
-| reacted to D1a (n=27) | 70% | 0% | 0% |
-| reacted to D1b (n=12) | 75% | 0% | 0% |
-| reacted to D1c (n=6) | 83% | 0% | 0% |
-| reacted to D2a (n=12) | 83% | 0% | 0% |
-| reacted to D2b (n=3) | 67% | 0% | 33% |
-| reacted to D2c (n=3) | 0% | 33% | 67% |
-| reacted to D3a (n=18) | 94% | 0% | 0% |
+| Metric | base | 1 h ×10 (R17) | 10 h ×10 (R21) | 50 h v2 ×10 (R22) | 45 h v3 ×10 (R24) |
+|---|---|---|---|---|---|
+| silent when due (n=51) | 16% | 51% | 73% | 57% | 78% |
+| speaks when due (n=105) | 50% | 84% | 86% | 91% | 87% |
+| cue release: spoke (n=33) | 48% | 73% | 73% | 85% | 76% |
+| timed re-ask (n=18) | 33% | 83% | 89% | 94% | 83% |
+| ordinary answered (n=54) | 56% | 91% | 93% | 94% | 94% |
+| silent in B1_double holds (n=6) | 33% | 50% | 33% | 33% | 17% |
+| silent in B1_rescind holds (n=3) | 33% | 33% | 33% | 67% | 100% |
+| silent in B1_std holds (n=12) | 33% | 17% | 58% | 8% | 58% |
+| silent in B2_std holds (n=18) | 0% | 67% | 89% | 94% | 100% |
+| silent in B3_early holds (n=3) | 0% | 100% | 100% | 33% | 100% |
+| silent in B3_rescind holds (n=3) | 33% | 100% | 67% | 100% | 100% |
+| silent in B3_std holds (n=6) | 0% | 33% | 100% | 50% | 83% |
+| reacted to D1a (n=27) | 70% | 0% | 0% | 0% | 0% |
+| reacted to D1b (n=12) | 75% | 25% | 0% | 0% | 0% |
+| reacted to D1c (n=6) | 83% | 0% | 0% | 0% | 0% |
+| reacted to D2a (n=12) | 83% | 17% | 0% | 0% | 0% |
+| reacted to D2b (n=3) | 67% | 0% | 0% | 33% | 33% |
+| reacted to D2c (n=3) | 0% | 0% | 33% | 67% | 33% |
+| reacted to D3a (n=18) | 94% | 6% | 0% | 0% | 0% |
 
 ### test_human_free
 
-| Metric | base | 10 h ×10 (R21 ep 2.2) | 50 h ×10 (R22 step 345) |
-|---|---|---|---|
-| silent when due (n=51) | 14% | 65% | 53% |
-| speaks when due (n=51) | 43% | 71% | 80% |
-| cue release: spoke (n=33) | 45% | 67% | 73% |
-| cue release: on time (n=33) | 48% | 67% | 79% |
-| timed re-ask (n=18) | 39% | 78% | 94% |
-| reacted to D1a (n=27) | 85% | 0% | 7% |
-| reacted to D1b (n=12) | 58% | 0% | 0% |
-| reacted to D1c (n=6) | 83% | 0% | 33% |
-| reacted to D2a (n=12) | 75% | 0% | 0% |
-| reacted to D2b (n=3) | 67% | 0% | 33% |
-| reacted to D2c (n=3) | 33% | 67% | 33% |
-| reacted to D3a (n=18) | 78% | 0% | 0% |
+| Metric | base | 1 h ×10 (R17) | 10 h ×10 (R21) | 50 h v2 ×10 (R22) | 45 h v3 ×10 (R24) |
+|---|---|---|---|---|---|
+| silent when due (n=51) | 14% | 71% | 65% | 53% | 69% |
+| speaks when due (n=51) | 43% | 75% | 71% | 80% | 76% |
+| cue release: spoke (n=33) | 45% | 76% | 67% | 73% | 73% |
+| timed re-ask (n=18) | 39% | 72% | 78% | 94% | 83% |
+| silent in B1_double holds (n=6) | 67% | 67% | 33% | 33% | 17% |
+| silent in B1_rescind holds (n=3) | 0% | 0% | 67% | 33% | 100% |
+| silent in B1_std holds (n=12) | 25% | 33% | 17% | 8% | 8% |
+| silent in B2_std holds (n=18) | 0% | 94% | 100% | 89% | 100% |
+| silent in B3_early holds (n=3) | 0% | 100% | 67% | 0% | 100% |
+| silent in B3_rescind holds (n=3) | 0% | 100% | 100% | 100% | 100% |
+| silent in B3_std holds (n=6) | 0% | 83% | 67% | 67% | 100% |
+| reacted to D1a (n=27) | 85% | 4% | 0% | 7% | 0% |
+| reacted to D1b (n=12) | 58% | 0% | 0% | 0% | 0% |
+| reacted to D1c (n=6) | 83% | 17% | 0% | 33% | 0% |
+| reacted to D2a (n=12) | 75% | 0% | 0% | 0% | 0% |
+| reacted to D2b (n=3) | 67% | 33% | 0% | 33% | 0% |
+| reacted to D2c (n=3) | 33% | 33% | 67% | 33% | 100% |
+| reacted to D3a (n=18) | 78% | 0% | 0% | 0% | 0% |

@@ -1,0 +1,5 @@
+/workspace/moshi-finetune/.venv/lib/python3.12/site-packages/moshi/models/loaders.py:174: UserWarning: Repository kyutai/moshiko-pytorch-bf16 contains no config.json. Assuming this is a Moshi 7B. Support for such repository might be removed in the future.
+  warnings.warn(
+loaded + prepared in 33 s; 1 checkpoint(s) x 40 episodes x 1 sample(s), batch 40
+base: 40 episodes in 35 s (28 ms/step) -> /workspace/eval/_bench
+all done in 67 s

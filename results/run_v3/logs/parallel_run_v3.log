@@ -1,0 +1,4 @@
+10:12:10 1 GPUs [0], 1 configs
+10:12:10 start R24_v3_b1-15_lr5e-05_epad10 on GPU 0 (log: /workspace/logs/R24_v3_b1-15_lr5e-05_epad10.log)
+11:51:48 FAIL  R24_v3_b1-15_lr5e-05_epad10 (exit 1, 100 min): tail /workspace/logs/R24_v3_b1-15_lr5e-05_epad10.log
+11:51:48 all finished; failed: R24_v3_b1-15_lr5e-05_epad10

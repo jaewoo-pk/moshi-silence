@@ -1,0 +1,18 @@
+  scored 20
+  scored 40
+  scored 60
+  scored 80
+wrote /workspace/eval/test_R22/test_cond/checkpoint_000345/scores.jsonl
+episodes 90; holds 90 (timer 30, cue 60)
+hold violated         51.1% (n=90)
+talking through        6.7% (n=90)
+resume on time        95.6% (n=90)
+  no onset in window   4.4% (n=90)
+  cue latency        median +0.61 s, p90 0.88 s (n=56)
+  timer error        median -27.04 s, p90 57.17 s (n=30)
+words in hold (incl. ack): mean 22.5
+ordinary responded      n/a; first turn    n/a; n/a
+barge-in                n/a
+interrupt onsets     3 in 90 episodes
+distractor triggered D1a 2% (56)  D1b 7% (14)  D1c 0% (2)  D2a 25% (12)  D2c 62% (24)  D3a 14% (29)
+speech after distr.  D1a 4% (56)  D1b 7% (14)  D1c 0% (2)  D2a 25% (12)  D2c 54% (24)  D3a 14% (29)

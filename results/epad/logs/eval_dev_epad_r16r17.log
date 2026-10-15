@@ -1,0 +1,5 @@
+04:56:05 GPU 1: R17_1h_lr5e-05_epad10 on dev_80 (log: /workspace/logs/eval/R17_1h_lr5e-05_epad10_dev_80.log)
+04:56:05 GPU 0: R16_1h_lr5e-05_epad3 on dev_80 (log: /workspace/logs/eval/R16_1h_lr5e-05_epad3_dev_80.log)
+05:14:04 GPU 1: R17_1h_lr5e-05_epad10 done (exit 0)
+05:14:09 GPU 0: R16_1h_lr5e-05_epad3 done (exit 0)
+05:14:09 all evals finished

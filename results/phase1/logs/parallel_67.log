@@ -1,0 +1,6 @@
+00:58:31 2 GPUs [1 2], 2 configs
+00:58:31 start R6_1h_lr5e-06 on GPU 1 (log: /workspace/logs/R6_1h_lr5e-06.log)
+00:58:31 start R7_1h_lr2e-05 on GPU 2 (log: /workspace/logs/R7_1h_lr2e-05.log)
+01:33:56 done  R7_1h_lr2e-05 (GPU 2, 35 min)
+01:34:03 done  R6_1h_lr5e-06 (GPU 1, 35 min)
+01:34:03 all finished; failed: none

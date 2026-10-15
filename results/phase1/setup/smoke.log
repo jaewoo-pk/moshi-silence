@@ -1,0 +1,71 @@
+Warning: `hf_repo_id` is set but `config_path` is None. This will load default models.
+2026-10-15 00:10:27 (UTC) - 0:00:28 - distributed - INFO - torch.cuda.device_count: 1
+2026-10-15 00:10:27 (UTC) - 0:00:28 - distributed - INFO - CUDA_VISIBLE_DEVICES: 0
+2026-10-15 00:10:27 (UTC) - 0:00:28 - distributed - INFO - local rank: 0
+2026-10-15 00:10:28 (UTC) - 0:00:28 - train - INFO - Going to init comms...
+2026-10-15 00:10:28 (UTC) - 0:00:28 - train - INFO - Run dir: /workspace/runs/_smoke
+[rank0]:[W1015 00:10:28.236945095 ProcessGroupNCCL.cpp:4561] [PG ID 0 PG GUID 0 Rank 0]  using GPU 0 to perform barrier as devices used by this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. Specify device_ids in barrier() to force use of a particular device, or call init_process_group() with a device_id.
+2026-10-15 00:10:28 (UTC) - 0:00:29 - train - INFO - TrainArgs: {'batch_size': 16,
+ 'ckpt_freq': 3,
+ 'data': {'eval_data': '/workspace/moshi-silence/data/dev/dev_200.jsonl',
+          'shuffle': True,
+          'train_data': '/workspace/moshi-silence/data/train/train_1h.jsonl'},
+ 'do_ckpt': True,
+ 'do_eval': True,
+ 'duration_sec': 60.0,
+ 'eval_freq': 3,
+ 'first_codebook_weight_multiplier': 100.0,
+ 'full_finetuning': False,
+ 'gradient_checkpointing': True,
+ 'log_freq': 1,
+ 'lora': {'enable': True, 'ft_embed': False, 'rank': 64, 'scaling': 2.0},
+ 'main_speech_mask_post_sec': 0.24,
+ 'main_speech_mask_pre_sec': 0.08,
+ 'mask_main_speech_audio': True,
+ 'max_norm': 1.0,
+ 'max_steps': 6,
+ 'moshi_paths': {'config_path': None,
+                 'hf_repo_id': 'kyutai/moshiko-pytorch-bf16',
+                 'mimi_path': '/workspace/moshiko/tokenizer-e351c8d8-checkpoint125.safetensors',
+                 'moshi_path': '/workspace/moshiko/model.safetensors',
+                 'tokenizer_path': '/workspace/moshiko/tokenizer_spm_32k_3.model'},
+ 'num_ckpt_keep': None,
+ 'num_microbatches': 1,
+ 'optim': {'lr': 5e-05, 'pct_start': 0.05, 'weight_decay': 0.1},
+ 'overwrite_run_dir': False,
+ 'param_dtype': 'bfloat16',
+ 'run_dir': '/workspace/runs/_smoke',
+ 'save_adapters': True,
+ 'seed': 0,
+ 'text_padding_weight': 0.5,
+ 'wandb': {'key': None, 'offline': False, 'project': None, 'run_name': None},
+ 'world_size': 1}
+2026-10-15 00:10:28 (UTC) - 0:00:29 - train - INFO - Loading Mimi and Moshi...
+/workspace/moshi-finetune/.venv/lib/python3.12/site-packages/moshi/models/loaders.py:174: UserWarning: Repository kyutai/moshiko-pytorch-bf16 contains no config.json. Assuming this is a Moshi 7B. Support for such repository might be removed in the future.
+  warnings.warn(
+2026-10-15 00:10:33 (UTC) - 0:00:34 - finetune.wrapped_model - INFO - Converting model to dtype torch.bfloat16 ...
+2026-10-15 00:10:33 (UTC) - 0:00:34 - finetune.wrapped_model - INFO - Initializing lora layers ...
+2026-10-15 00:10:37 (UTC) - 0:00:37 - finetune.wrapped_model - INFO - Finished initialization!
+2026-10-15 00:12:38 (UTC) - 0:02:38 - train - INFO - step: 000001 - done (%): 16.7 - loss: 1.027 - lr: 4.8e-05 - peak_alloc_mem (GB): 27.7 - alloc_mem (GB): 18.7 - words_per_second: 2253.0 - avg_words_per_second: 2253.0 - ETA: >2026-10-15 00:16:37 - text_loss: 0.564 - audio_loss: 0.462
+2026-10-15 00:12:48 (UTC) - 0:02:48 - train - INFO - step: 000002 - done (%): 33.3 - loss: 0.775 - lr: 4.0e-05 - peak_alloc_mem (GB): 29.1 - alloc_mem (GB): 18.7 - words_per_second: 11110.6 - avg_words_per_second: 3746.3 - ETA: >2026-10-15 00:14:43 - text_loss: 0.572 - audio_loss: 0.203
+2026-10-15 00:13:45 (UTC) - 0:03:45 - eval - INFO - Eval finished!
+2026-10-15 00:13:45 (UTC) - 0:03:45 - train - INFO - step: 000003 - eval_perplexity: 1.530 - eval_loss: 0.613 - train_loss: 0.610 - text_eval_loss: 0.492 - audio_eval_loss: 0.121
+2026-10-15 00:13:45 (UTC) - 0:03:45 - train - INFO - step: 000003 - done (%): 50.0 - loss: 0.610 - lr: 2.7e-05 - peak_alloc_mem (GB): 29.1 - alloc_mem (GB): 18.7 - words_per_second: 1895.5 - avg_words_per_second: 2826.4 - ETA: >2026-10-15 00:15:39 - text_loss: 0.492 - audio_loss: 0.118
+2026-10-15 00:13:45 (UTC) - 0:03:45 - checkpointing - INFO - Dumping checkpoint in /workspace/runs/_smoke/checkpoints/checkpoint_000003/consolidated using tmp name: tmp.consolidated
+2026-10-15 00:13:46 (UTC) - 0:03:46 - checkpointing - INFO - Done dumping checkpoint in /workspace/runs/_smoke/checkpoints/checkpoint_000003/consolidated for step: 3
+2026-10-15 00:13:46 (UTC) - 0:03:46 - checkpointing - INFO - Done!
+2026-10-15 00:13:55 (UTC) - 0:03:56 - train - INFO - step: 000004 - done (%): 66.7 - loss: 0.705 - lr: 1.4e-05 - peak_alloc_mem (GB): 29.1 - alloc_mem (GB): 18.7 - words_per_second: 11278.5 - avg_words_per_second: 3478.0 - ETA: >2026-10-15 00:14:58 - text_loss: 0.573 - audio_loss: 0.132
+2026-10-15 00:14:05 (UTC) - 0:04:06 - train - INFO - step: 000005 - done (%): 83.3 - loss: 0.706 - lr: 3.7e-06 - peak_alloc_mem (GB): 29.1 - alloc_mem (GB): 18.7 - words_per_second: 11310.5 - avg_words_per_second: 4037.1 - ETA: >2026-10-15 00:14:32 - text_loss: 0.558 - audio_loss: 0.148
+2026-10-15 00:14:55 (UTC) - 0:04:55 - eval - INFO - Eval finished!
+2026-10-15 00:14:55 (UTC) - 0:04:55 - train - INFO - step: 000006 - eval_perplexity: 1.520 - eval_loss: 0.604 - train_loss: 0.669 - text_eval_loss: 0.483 - audio_eval_loss: 0.121
+2026-10-15 00:14:55 (UTC) - 0:04:55 - train - INFO - step: 000006 - done (%): 100.0 - loss: 0.669 - lr: 2.0e-10 - peak_alloc_mem (GB): 29.1 - alloc_mem (GB): 18.7 - words_per_second: 2175.2 - avg_words_per_second: 3533.1 - ETA: >2026-10-15 00:14:55 - text_loss: 0.534 - audio_loss: 0.135
+2026-10-15 00:14:55 (UTC) - 0:04:55 - checkpointing - INFO - Dumping checkpoint in /workspace/runs/_smoke/checkpoints/checkpoint_000006/consolidated using tmp name: tmp.consolidated
+2026-10-15 00:14:56 (UTC) - 0:04:56 - checkpointing - INFO - Done dumping checkpoint in /workspace/runs/_smoke/checkpoints/checkpoint_000006/consolidated for step: 6
+2026-10-15 00:14:56 (UTC) - 0:04:56 - checkpointing - INFO - Done!
+2026-10-15 00:14:56 (UTC) - 0:04:56 - train - INFO - done!
+2026-10-15 00:14:56 (UTC) - 0:04:56 - utils - INFO - Closing: eval_logger
+2026-10-15 00:14:56 (UTC) - 0:04:56 - utils - INFO - Closed: eval_logger
+2026-10-15 00:14:56 (UTC) - 0:04:56 - utils - INFO - Closing: metrics_logger
+2026-10-15 00:14:56 (UTC) - 0:04:56 - utils - INFO - Closed: metrics_logger
+2026-10-15 00:14:56 (UTC) - 0:04:56 - train - INFO - Closed everything!
+[rank0]:[W1015 00:14:56.807097321 ProcessGroupNCCL.cpp:1496] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())

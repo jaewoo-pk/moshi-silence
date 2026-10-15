@@ -315,6 +315,8 @@ def main():
     ap.add_argument("--workers", type=int, default=32, help="concurrent API requests")
     ap.add_argument("--families", nargs="+", default=["B1", "B2", "B3", "ORD", "DECOY"])
     ap.add_argument("--rejects", default=None, help="also write rejected packs (with the reason) here")
+    ap.add_argument("--seed", type=int, default=0, help="topic/style sequence seed (a new seed for a new top-up)")
+    ap.add_argument("--per-family-json", default=None, help='per-family targets, e.g. \'{"B1": 2200, "B2": 1600}\'')
     a = ap.parse_args()
 
     import os
@@ -341,8 +343,11 @@ def main():
             seen.add(norm(k))
             by_fam.setdefault(fam, []).append(content_words(k))
             recent.setdefault(fam, []).append(k)
-    r = random.Random(0)
+    r = random.Random(a.seed)
     fams = a.families
+    target = {fam: a.per_family for fam in fams}
+    if a.per_family_json:
+        target.update(json.loads(a.per_family_json))
     rej_f = open(a.rejects, "a") if a.rejects else None
     got = {fam: len(by_fam.get(fam, [])) for fam in fams}  # resume = top up to --per-family
     returned, accepted = 0, 0  # items the model returned / kept, for the yield estimate
@@ -383,7 +388,7 @@ def main():
             rejected["unparseable batch"] = rejected.get("unparseable batch", 0) + 1
             return
         for p in items:
-            if got[fam] >= a.per_family:
+            if got[fam] >= target[fam]:
                 break
             if not isinstance(p, dict):
                 continue
@@ -393,7 +398,7 @@ def main():
             try:
                 k = key_text(fam, p)
                 ok, why = validate(fam, p)
-            except (KeyError, IndexError, TypeError, AttributeError):
+            except (KeyError, IndexError, TypeError, AttributeError, StopIteration):
                 ok, why = False, "schema: malformed"
             if ok:
                 cw = content_words(k)
@@ -434,13 +439,13 @@ def main():
         while True:
             yld = max(0.2, accepted / returned) if returned >= 20 else 0.8
             pending = {fam: sum(1 for v in inflight.values() if v[0] == fam) for fam in fams}
-            want = [fam for fam in fams if got[fam] + pending[fam] * a.batch * yld < a.per_family]
+            want = [fam for fam in fams if got[fam] + pending[fam] * a.batch * yld < target[fam]]
             while want and len(inflight) < a.workers:
                 fam = min(want, key=lambda x: got[x] + pending[x] * a.batch * yld)
                 _, topic, decoy, style, prompt = make_request(fam)
                 inflight[pool.submit(call, fam, prompt)] = (fam, topic, decoy, style)
                 pending[fam] += 1
-                want = [x for x in fams if got[x] + pending[x] * a.batch * yld < a.per_family]
+                want = [x for x in fams if got[x] + pending[x] * a.batch * yld < target[x]]
             if not inflight:
                 break
             done = next(as_completed(inflight))
@@ -451,7 +456,7 @@ def main():
                 rejected[f"api error {type(e).__name__}"] = rejected.get(f"api error {type(e).__name__}", 0) + 1
                 continue
             take(fam, topic, decoy, style, msg, f)
-            print("  ".join(f"{x}: {got[x]}/{a.per_family}" for x in fams) + f"  calls: {usage['calls']}", flush=True)
+            print("  ".join(f"{x}: {got[x]}/{target[x]}" for x in fams) + f"  calls: {usage['calls']}", flush=True)
     print()
     print(f"wrote {n_written} packs to {out}")
     print("api usage:", usage)

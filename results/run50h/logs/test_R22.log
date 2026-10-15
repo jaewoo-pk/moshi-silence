@@ -1,0 +1,8 @@
+09:08:03 test_script: /workspace/runs/R22_50h_lr5e-05_epad10/checkpoints/checkpoint_000345
+09:10:52 test_word: /workspace/runs/R22_50h_lr5e-05_epad10/checkpoints/checkpoint_000345
+09:13:40 test_voice: /workspace/runs/R22_50h_lr5e-05_epad10/checkpoints/checkpoint_000345
+09:16:31 test_distract: /workspace/runs/R22_50h_lr5e-05_epad10/checkpoints/checkpoint_000345
+09:19:50 test_cond: /workspace/runs/R22_50h_lr5e-05_epad10/checkpoints/checkpoint_000345
+09:23:17 test_ordinary: /workspace/runs/R22_50h_lr5e-05_epad10/checkpoints/checkpoint_000345
+09:25:14 test_all: /workspace/runs/R22_50h_lr5e-05_epad10/checkpoints/checkpoint_000345
+09:27:46 test suites done

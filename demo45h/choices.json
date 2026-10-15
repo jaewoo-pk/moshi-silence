@@ -1,0 +1,12 @@
+{
+ "1_side_conversation": "A",
+ "2_cue_lookalike": "C",
+ "3_hear_me_out_pauses": "B",
+ "4_hear_me_out_cancelled": "C",
+ "5_timed_hold": "B",
+ "6_ordinary_with_pause": "A",
+ "7a_my_voice_scripted": "B",
+ "7b_my_voice_own_words": "C",
+ "8a_FAIL_friend_says_im_back": "B",
+ "8b_FAIL_minute_hold": "B"
+}

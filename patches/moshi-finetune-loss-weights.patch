@@ -1,0 +1,62 @@
+diff --git a/finetune/args.py b/finetune/args.py
+index a2c7471..d9d3a17 100644
+--- a/finetune/args.py
++++ b/finetune/args.py
+@@ -72,6 +72,10 @@ class TrainArgs(Serializable):
+     moshi_paths: ModelPaths = field(default_factory=ModelPaths)
+     first_codebook_weight_multiplier: float = 1.0
+     text_padding_weight: float = 0.5
++    # Training-only loss weights (the dev loss keeps text_padding_weight for both PAD and EPAD and
++    # an unscaled audio term, so it stays comparable across runs). None / 1.0 = upstream behavior.
++    text_epad_weight: float | None = None  # weight on EPAD (the "start talking" frame) in the text loss
++    audio_loss_weight: float = 1.0  # total = text_loss + audio_loss_weight * audio_loss
+     # Skip the audio loss on frames where the main speaker (Moshi) is talking, padded by
+     # pre/post seconds. Text loss is unchanged and audio loss still applies wherever
+     # Moshi is silent, so synthetic (TTS-voiced) Moshi turns can't pull Moshi's voice.
+diff --git a/finetune/loss.py b/finetune/loss.py
+index ebb942a..f567bb7 100644
+--- a/finetune/loss.py
++++ b/finetune/loss.py
+@@ -10,6 +10,8 @@ def compute_loss_with_mask(
+     first_codebook_weight_multiplier: float = 1.0,
+     text_padding_weight: float = 1.0,
+     text_padding_ids: set[int] | None = None,
++    text_epad_id: int | None = None,
++    text_epad_weight: float | None = None,
+ ):
+     target = torch.where(target_mask, target, torch.zeros_like(target))
+ 
+@@ -19,7 +21,10 @@ def compute_loss_with_mask(
+     elif mode == "text":
+         assert text_padding_ids is not None
+         for id in text_padding_ids:
+-            weights[target == id] *= text_padding_weight
++            # EPAD (end of padding = "start talking now") can get its own weight; it shares
++            # text_padding_weight with PAD unless text_epad_weight is set.
++            w = text_epad_weight if (text_epad_weight is not None and id == text_epad_id) else text_padding_weight
++            weights[target == id] *= w
+ 
+     logits = logits.view(-1, logits.size(-1)).float()
+     target = target.view(-1)
+diff --git a/train.py b/train.py
+index f04d52f..22170bc 100644
+--- a/train.py
++++ b/train.py
+@@ -272,6 +272,8 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+                     model.text_padding_token_id,
+                     model.end_of_text_padding_id,
+                 },
++                text_epad_id=model.end_of_text_padding_id,
++                text_epad_weight=args.text_epad_weight,
+             )
+             audio_mask = output.mask
+             if batch.audio_loss_mask is not None:
+@@ -284,7 +286,7 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+                 first_codebook_weight_multiplier=args.first_codebook_weight_multiplier,
+             )
+ 
+-            mb_loss = text_loss + audio_loss
++            mb_loss = text_loss + args.audio_loss_weight * audio_loss
+             mb_loss.backward()
+ 
+             loss += mb_loss.detach()

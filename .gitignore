@@ -10,3 +10,9 @@ __pycache__/
 .DS_Store
 # listening-page audio (rebuilt by results/human/analysis/build_listen.py)
 results/human/listen/audio/
+
+# local-only
+cache50/
+cache50_stage/
+tr_dummy/
+models

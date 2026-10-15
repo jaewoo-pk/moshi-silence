@@ -72,6 +72,10 @@ Costs: timed holds lose silence (mutter reactions up to 53%). Details: `results/
 quiet, the reverse of the TTS-voiced test suites. Likely real-voice robustness from R22's 63 voices / 3 engines, which no suite
 measures. See `docs/training_record.md` §9.
 
+**Data fix v3 → R24 (2026-10-15): best model so far.** Long silences inside cue-released holds + B1 at 15% removed R22's
+"speak after a pause" shortcut: dev 0.94, best on test_script / word / voice / all (0.97 / 0.90 / 0.94 / 0.86) and on the
+user's recorded voice (0.83 vs 0.79 for R21). `results/run_v3/summary.md`, `results/human/summary.md`.
+
 ## Where things are
 
 - Listening demo (20 models × 9 conversations, audio + timelines): `results/demo/index.html`
