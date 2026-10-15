@@ -1,0 +1,371 @@
+<title>Human Set Listening Room</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: one reading column; summary (scores, episode matrix) before detail; each episode stacks its
+   three versions so TTS / your voice / own words can be A/B'd on one shared set of lanes. */
+:root {
+  --paper: #f5f7f8; --sheet: #ffffff; --ink: #1a2026; --muted: #5b6671; --rule: #d8dee3;
+  --moshi: #0e7c76; --moshi-dim: #9cc9c5; --you: #3a58a3; --friend: #b06f12;
+  --hold: #c23d36; --hold-bg: rgba(194, 61, 54, .13); --free: rgba(14, 124, 118, .08);
+  --ok: #2c7a37; --bad: #c23d36; --script: #b9c2ca;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #11161a; --sheet: #171d22; --ink: #e3e8ec; --muted: #97a2ac; --rule: #2a3239;
+  --moshi: #3cc2b8; --moshi-dim: #24524f; --you: #86a0e6; --friend: #e3a645;
+  --hold: #ef6b62; --hold-bg: rgba(239, 107, 98, .16); --free: rgba(60, 194, 184, .09);
+  --ok: #62c16f; --bad: #ef6b62; --script: #46515b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #11161a; --sheet: #171d22; --ink: #e3e8ec; --muted: #97a2ac; --rule: #2a3239;
+  --moshi: #3cc2b8; --moshi-dim: #24524f; --you: #86a0e6; --friend: #e3a645;
+  --hold: #ef6b62; --hold-bg: rgba(239, 107, 98, .16); --free: rgba(60, 194, 184, .09);
+  --ok: #62c16f; --bad: #ef6b62; --script: #46515b; color-scheme: dark }
+
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(28px, 4.4vw, 40px); letter-spacing: -.01em; }
+h2 { font-size: 21px; }
+h3 { font-size: 17px; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+header { display: grid; gap: 10px; }
+.lede { color: var(--muted); font-size: 16px; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.note { display: grid; gap: 8px; align-content: start; min-width: 0; padding: 14px 16px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; }
+.note.warn { border-color: var(--hold); }
+.note h3 { font-size: 15px; }
+.note p, .note li { font-size: 14px; color: var(--muted); }
+.note ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.legend { display: grid; gap: 6px; font-size: 13.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 18px; height: 10px; border-radius: 2px; display: inline-block; flex: none; }
+
+.scorebox { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font-weight: 500; color: var(--muted); font-size: 12.5px; }
+td.num, th.num { text-align: right; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; position: sticky;
+  top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); padding-block: 10px; border-bottom: 1px solid var(--rule); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.seg button { font: 500 13.5px var(--body); color: var(--muted); background: var(--sheet); border: 0; padding: 6px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.seg button:focus-visible, .ep summary:focus-visible, .ov a:focus-visible { outline: 2px solid var(--moshi); outline-offset: 2px; }
+.ctl { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+.count { font-size: 13px; color: var(--muted); margin-left: auto; }
+
+.ov { overflow-x: auto; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; }
+.ov table td, .ov table th { padding: 6px 10px; }
+.ov a { color: var(--ink); text-decoration: none; }
+.ov a:hover { text-decoration: underline; }
+.dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot.p { background: var(--ok); }
+.dot.f { background: transparent; box-shadow: inset 0 0 0 2px var(--bad); }
+.na { color: var(--muted); }
+
+.eplist { display: grid; gap: 18px; }
+.ep { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; display: grid; gap: 14px; scroll-margin-top: 70px; }
+.ephead { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.ephead .mono { font-size: 13px; color: var(--muted); }
+.row { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--rule); min-width: 0; }
+.rowhead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.cond { font-family: var(--display); font-weight: 600; font-size: 15px; min-width: 9ch; }
+.model { font-family: var(--mono); font-size: 12px; padding: 1px 6px; border: 1px solid var(--rule); border-radius: 4px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; line-height: 1.5; }
+.chip.ok { color: var(--ok); }
+.chip.bad { color: var(--bad); }
+.chip.neutral { color: var(--muted); }
+audio { width: 100%; height: 34px; }
+
+.tl { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 0 8px; }
+.lanes { display: grid; grid-template-rows: 22px 18px 26px; font-size: 11px; color: var(--muted); font-family: var(--mono); align-items: center; }
+.plot { position: relative; cursor: pointer; min-width: 0; }
+.plot svg { display: block; width: 100%; height: 66px; }
+.ph { position: absolute; top: 0; height: 66px; width: 2px; background: var(--ink); left: 0; pointer-events: none; opacity: .75; }
+.ticks { position: relative; height: 16px; grid-column: 2; font-size: 10.5px; color: var(--muted); font-family: var(--mono); }
+.ticks span { position: absolute; transform: translateX(-50%); }
+.ticks span:first-child { transform: none; }
+.said { font-size: 13.5px; display: grid; gap: 3px; }
+.said .lab { color: var(--muted); font-size: 12px; }
+.said .w { font-family: var(--body); }
+.said .t { font-family: var(--mono); font-size: 11.5px; color: var(--moshi); margin-right: 4px; }
+details.script { font-size: 13.5px; }
+details.script summary { cursor: pointer; color: var(--muted); }
+.lines { display: grid; grid-template-columns: 5ch 7ch minmax(0, 1fr); gap: 2px 10px; margin-top: 8px; }
+.lines .spk-user { color: var(--you); }
+.lines .spk-friend { color: var(--friend); }
+.lines .spk-moshi { color: var(--moshi); }
+.own { font-style: italic; }
+@media (max-width: 720px) { .notes { grid-template-columns: minmax(0, 1fr); } .count { margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<main class="wrap">
+  <header>
+    <div class="eyebrow">moshi-silence · human test set · speaker s01 · 15 Oct 2026</div>
+    <h1>Listen to the human test set</h1>
+    <p class="lede">Every episode the scores come from, in three versions: the original TTS episode, the same lines in your voice, and (for the 16 hold episodes) your own wording of the instruction and the return cue. Each row plays sample 0 of three and shows what the scorer measured, so you can check the numbers against what you hear.</p>
+  </header>
+
+  <section class="notes" aria-label="How to read this page">
+    <div class="note">
+      <h3>What you hear</h3>
+      <p>Left channel: Moshi's generated audio. Right channel: the input (you or TTS, the friend, room noise). Each side has 30% of the other mixed in, so laptop speakers work too.</p>
+    </div>
+    <div class="note">
+      <h3>The timeline</h3>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--you)"></i>you (outlined: own words)</span>
+        <span><i class="sw" style="background:var(--friend)"></i>friend (TTS)</span>
+        <span><i class="sw" style="background:var(--script)"></i>Moshi's scripted lines</span>
+        <span><i class="sw" style="background:var(--moshi)"></i>Moshi speaking, generated (VAD)</span>
+        <span><i class="sw" style="background:var(--free);box-shadow:inset 0 0 0 1px var(--moshi)"></i>window the model runs freely</span>
+        <span><i class="sw" style="background:var(--hold-bg);box-shadow:inset 0 0 0 1px var(--hold)"></i>must be silent here; dashed line = release point</span>
+      </div>
+    </div>
+    <div class="note warn">
+      <h3>How this differs from live chat</h3>
+      <ul>
+        <li>Outside the shaded windows, Moshi's channel is forced to the script. Each scored window starts from a clean, correct conversation, and any mistake is erased when the window ends. Live chat has no reset.</li>
+        <li>A window runs from the end of the instruction to about 4 s after the release, so the model never has to stay quiet or keep talking past that.</li>
+        <li>Timing comes from voice activity detection on the decoded audio, not from listening. Short acks within 2.5 s of the instruction are allowed.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:10px" aria-labelledby="sc">
+    <h2 id="sc">Scores (3 samples per episode)</h2>
+    <div class="scorebox" id="scores"></div>
+    <p style="font-size:13.5px;color:var(--muted)">Score = mean of “silent when due” and “speaks when due”. The own-words column covers only the 16 hold episodes, so compare it with the TTS figure on those same episodes (in parentheses).</p>
+  </section>
+
+  <div class="controls" role="group" aria-label="Filters">
+    <div class="ctl">Model
+      <span class="seg" id="fModel">
+        <button type="button" data-v="R21" aria-pressed="true">R21 · 10 h</button><button type="button" data-v="R22" aria-pressed="false">R22 · 50 h</button><button type="button" data-v="both" aria-pressed="false">Both</button>
+      </span>
+    </div>
+    <div class="ctl">Show
+      <span class="seg" id="fShow">
+        <button type="button" data-v="all" aria-pressed="true">All</button><button type="button" data-v="fail" aria-pressed="false">Has a failure</button><button type="button" data-v="diff" aria-pressed="false">TTS and you differ</button>
+      </span>
+    </div>
+    <span class="count" id="count"></span>
+  </div>
+
+  <section style="display:grid;gap:10px" aria-labelledby="ovh">
+    <h2 id="ovh">Episodes at a glance</h2>
+    <p style="font-size:13.5px;color:var(--muted)">One dot per sample: filled = every check passed (stayed silent, came back on time, answered, ignored distractors); ring = at least one check failed. Click an episode to jump to it.</p>
+    <div class="ov" id="overview"></div>
+  </section>
+
+  <section class="eplist" id="episodes" aria-label="Episodes"></section>
+</main>
+
+<script>
+const DATA = /*__DATA__*/null;
+const TYPES = {
+  B1_std: "Timed hold", B1_double: "Two timed holds", B1_rescind: "Timed hold, then taken back",
+  B2_std: "Friend drops by, then “I'm back”", B3_std: "Three options, hold comments", B3_early: "Options, stops at two",
+  B3_rescind: "Options, cut short", ORD: "Ordinary chat", DECOY: "Ordinary chat with hold-like words",
+};
+const DIS = {
+  D1a: "friend asks you a question", D1b: "you ask the friend", D1c: "friend asks something Moshi could answer",
+  D2a: "long stall", D2b: "pause between options", D2c: "you mutter while thinking", D3a: "sounds like a return cue",
+  D3b: "sounds like you're done",
+};
+const COND = ["TTS", "Your voice", "Own words"];
+const state = { model: "R21", show: "all" };
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const fmt = t => t.toFixed(1);
+
+function samplePass(v) {
+  for (const h of v.holds) {
+    if (h.violated === true) return false;
+    if (h.outcome !== "on_time") return false;
+    if (h.reacted.length) return false;
+  }
+  return v.responses.every(Boolean);
+}
+const rowPass = r => samplePass(r.v[0]);
+const passCount = r => r.v.filter(samplePass).length;
+
+function chips(r) {
+  const v = r.v[0], out = [];
+  v.holds.forEach((h, i) => {
+    const H = r.holds[i], pre = r.holds.length > 1 ? `hold ${i + 1}: ` : "";
+    if (h.violated === true) out.push(["bad", `${pre}spoke during hold · ${fmt(h.speech)} s, ${h.words} words`]);
+    else if (h.violated === false) out.push(["ok", `${pre}stayed silent`]);
+    else out.push(["neutral", `${pre}hold too short to score silence`]);
+    const lat = h.latency != null ? ` · ${h.latency >= 0 ? "+" : ""}${fmt(h.latency)} s` : "";
+    const what = H.kind === "timer" ? `re-asked after ${H.N} s` : "came back after the cue";
+    if (h.outcome === "on_time") out.push(["ok", `${pre}${what}${lat}`]);
+    else if (h.outcome === "late") out.push(["bad", `${pre}late${lat}`]);
+    else out.push(["bad", h.through ? `${pre}was already talking at the release` : `${pre}never came back`]);
+    h.reacted.forEach(c => out.push(["bad", `reacted: ${DIS[c] || c}`]));
+  });
+  if (v.responses.length) {
+    const n = v.responses.filter(Boolean).length;
+    out.push([n === v.responses.length ? "ok" : "bad", `answered ${n} of ${v.responses.length} turns`]);
+  }
+  return out.map(([k, t]) => `<span class="chip ${k}">${esc(t)}</span>`).join("");
+}
+
+function dots(r) {
+  if (!r) return `<span class="na">–</span>`;
+  return `<span class="dots" title="${passCount(r)} of 3 samples passed">${r.v.map(v => `<i class="dot ${samplePass(v) ? "p" : "f"}"></i>`).join("")}</span>`;
+}
+
+function timeline(r) {
+  const W = 1000, d = r.dur, x = t => Math.max(0, Math.min(W, t / d * W));
+  const rect = (a, b, y, h, fill, extra = "") => b > a ? `<rect x="${x(a).toFixed(1)}" y="${y}" width="${Math.max(1.5, x(b) - x(a)).toFixed(1)}" height="${h}" fill="${fill}" ${extra}/>` : "";
+  let s = "";
+  r.free.forEach(([a, b]) => s += rect(a, b, 0, 66, "var(--free)"));
+  r.holds.forEach(h => { s += rect(h.region[0], h.region[1], 44, 22, "var(--hold-bg)"); });
+  r.human.forEach(t => {
+    const c = t.spk === "friend" ? "var(--friend)" : "var(--you)";
+    s += t.own ? rect(t.t[0], t.t[1], 5, 12, "var(--sheet)", `stroke="${c}" stroke-width="3" vector-effect="non-scaling-stroke"`) : rect(t.t[0], t.t[1], 4, 14, c);
+  });
+  r.dis.forEach(dd => s += rect(dd.t[0], dd.t[0] + d * 0.004, 0, 3, "var(--hold)"));
+  r.moshi.forEach(t => s += rect(t.t[0], t.t[1], 27, 10, "var(--script)"));
+  r.segs.forEach(([a, b]) => {
+    s += rect(a, b, 47, 16, "var(--moshi-dim)");
+    r.free.forEach(([fa, fb]) => s += rect(Math.max(a, fa), Math.min(b, fb), 47, 16, "var(--moshi)"));
+  });
+  r.holds.forEach(h => s += `<line x1="${x(h.ref).toFixed(1)}" x2="${x(h.ref).toFixed(1)}" y1="22" y2="66" stroke="var(--hold)" stroke-width="2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`);
+  const step = d > 70 ? 10 : 5;
+  let ticks = "";
+  for (let t = 0; t <= d; t += step) ticks += `<span style="left:${(t / d * 100).toFixed(2)}%">${t}s</span>`;
+  return `<div class="tl"><div class="lanes"><span>input</span><span>script</span><span>Moshi</span></div>
+    <div class="plot" data-dur="${d}"><svg viewBox="0 0 ${W} 66" preserveAspectRatio="none" aria-hidden="true">${s}</svg><div class="ph"></div></div>
+    <div class="ticks">${ticks}</div></div>`;
+}
+
+function said(r) {
+  if (!r.words.length) return `<div class="said"><span class="lab">Moshi's generated words in the free windows</span><span class="w" style="color:var(--muted)">(none: silent the whole time)</span></div>`;
+  const groups = [];
+  r.words.forEach(([w, t]) => {
+    const g = groups[groups.length - 1];
+    if (!g || t - g.last > 1.2) groups.push({t, ws: [w], last: t}); else { g.ws.push(w); g.last = t; }
+  });
+  return `<div class="said"><span class="lab">Moshi's generated words in the free windows</span><span class="w">${groups.map(g => `<span class="t">${fmt(g.t)}</span>${esc(g.ws.join(" "))}`).join(" &nbsp;")}</span></div>`;
+}
+
+function script(r) {
+  const lines = [...r.human.map(t => ({...t})), ...r.moshi.map(t => ({spk: "moshi", t: t.t, text: t.text, role: t.role}))]
+    .sort((a, b) => a.t[0] - b.t[0]);
+  const lab = {user: "you", friend: "friend", moshi: "Moshi"};
+  return `<details class="script"><summary>Script with times</summary><div class="lines">${lines.map(l =>
+    `<span class="num">${fmt(l.t[0])}</span><span class="spk-${l.spk}">${lab[l.spk]}</span><span class="${l.own ? "own" : ""}">${l.own ? "Own words (not transcribed). Card: " + esc(l.text) : esc(l.text)}${l.spk === "moshi" && r.free.some(([a, b]) => l.t[0] >= a && l.t[0] <= b) ? ` <span style="color:var(--muted)">(reference only; generated here)</span>` : ""}</span>`).join("")}</div></details>`;
+}
+
+function rowHTML(r, k) {
+  return `<div class="row" data-model="${r.model}" data-cond="${r.cond}">
+    <div class="rowhead"><span class="cond">${esc(r.cond)}</span><span class="model">${r.model}</span>${dots(r)}<span class="chips">${chips(r)}</span></div>
+    <audio controls preload="none" src="${r.audio}" id="a-${k}"></audio>
+    ${timeline(r)}${said(r)}${script(r)}</div>`;
+}
+
+function render() {
+  const eps = DATA.episodes;
+  // score table
+  const S = DATA.summary.scores, lab = {"base": "base", "10 h ×10 (R21 ep 2.2)": "R21 · 10 h ×10, ep 2.2", "50 h ×10 (R22 step 345)": "R22 · 50 h ×10, step 345"};
+  const free = DATA.summary.scores;
+  let t = `<table><thead><tr><th>Model</th><th class="num">TTS</th><th class="num">Your voice</th><th class="num">Own words (TTS on same 16)</th></tr></thead><tbody>`;
+  for (const [k, name] of Object.entries(lab)) {
+    const r = S[k]; if (!r) continue;
+    const c = s => r[s] ? `${r[s].score.toFixed(2)} <span class="na">(${Math.round(100 * r[s].silent[0])}% / ${Math.round(100 * r[s].speaks[0])}%)</span>` : "–";
+    t += `<tr><td>${name}</td><td class="num">${c("test_human_tts")}</td><td class="num">${c("test_human")}</td><td class="num">${c("test_human_free")}</td></tr>`;
+  }
+  document.getElementById("scores").innerHTML = t + `</tbody></table><p style="font-size:12.5px;color:var(--muted);margin-top:6px">Cells: score (silent when due / speaks when due).</p>`;
+  // overview
+  let o = `<table><thead><tr><th>Episode</th><th>Kind</th>`;
+  for (const m of ["R21", "R22"]) for (const c of COND) o += `<th data-model="${m}">${m} · ${c}</th>`;
+  o += `</tr></thead><tbody>`;
+  eps.forEach(e => {
+    o += `<tr data-ep="${e.id}"><td class="mono"><a href="#${e.id}">${e.id.replace("te_all_", "")}</a></td><td>${esc(TYPES[e.type] || e.type)}</td>`;
+    for (const m of ["R21", "R22"]) for (const c of COND) o += `<td data-model="${m}">${dots(e.rows.find(r => r.model === m && r.cond === c))}</td>`;
+    o += `</tr>`;
+  });
+  document.getElementById("overview").innerHTML = o + `</tbody></table>`;
+  // episodes
+  let k = 0;
+  document.getElementById("episodes").innerHTML = eps.map(e => `<article class="ep" id="${e.id}" data-ep="${e.id}">
+    <div class="ephead"><h3>${esc(TYPES[e.type] || e.type)}</h3><span class="mono">${e.id} · ${e.type}</span></div>
+    ${e.rows.map(r => rowHTML(r, k++)).join("")}</article>`).join("");
+  wire();
+  apply();
+}
+
+function epVisible(e) {
+  const rows = e.rows.filter(r => state.model === "both" || r.model === state.model);
+  if (state.show === "fail") return rows.some(r => !rowPass(r));
+  if (state.show === "diff") {
+    return ["R21", "R22"].filter(m => state.model === "both" || m === state.model).some(m => {
+      const tts = e.rows.find(r => r.model === m && r.cond === "TTS");
+      return e.rows.some(r => r.model === m && r.cond !== "TTS" && tts && rowPass(r) !== rowPass(tts));
+    });
+  }
+  return true;
+}
+
+function apply() {
+  let n = 0;
+  DATA.episodes.forEach(e => {
+    const vis = epVisible(e); n += vis;
+    const card = document.getElementById(e.id);
+    card.hidden = !vis;
+    card.querySelectorAll(".row").forEach(r => r.hidden = !(state.model === "both" || r.dataset.model === state.model));
+    document.querySelector(`#overview tr[data-ep="${e.id}"]`).hidden = !vis;
+  });
+  document.querySelectorAll("#overview [data-model]").forEach(c => c.hidden = !(state.model === "both" || c.dataset.model === state.model));
+  document.getElementById("count").textContent = `${n} of ${DATA.episodes.length} episodes`;
+  try { localStorage.setItem("hsl-state", JSON.stringify(state)); } catch (_) {}
+}
+
+function seg(id, key) {
+  const el = document.getElementById(id);
+  el.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    state[key] = b.dataset.v;
+    el.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    apply();
+  }));
+  el.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.v === state[key])));
+}
+
+function wire() {
+  const audios = [...document.querySelectorAll("audio")];
+  audios.forEach(a => {
+    const row = a.closest(".row"), plot = row.querySelector(".plot"), ph = plot.querySelector(".ph");
+    const dur = +plot.dataset.dur;
+    let raf = 0;
+    const tick = () => { ph.style.left = `${Math.min(100, a.currentTime / dur * 100)}%`; if (!a.paused) raf = requestAnimationFrame(tick); };
+    a.addEventListener("play", () => { audios.forEach(o => o !== a && o.pause()); cancelAnimationFrame(raf); tick(); });
+    a.addEventListener("seeked", tick);
+    plot.addEventListener("click", ev => {
+      const b = plot.getBoundingClientRect();
+      const t = (ev.clientX - b.left) / b.width * dur;
+      a.currentTime = Math.max(0, t); a.play().catch(() => {}); tick();
+    });
+  });
+}
+
+try { Object.assign(state, JSON.parse(localStorage.getItem("hsl-state") || "{}")); } catch (_) {}
+seg("fModel", "model"); seg("fShow", "show");
+render();
+</script>

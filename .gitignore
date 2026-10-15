@@ -8,3 +8,5 @@ demo/episodes/*.wav
 configs/
 __pycache__/
 .DS_Store
+# listening-page audio (rebuilt by results/human/analysis/build_listen.py)
+results/human/listen/audio/
