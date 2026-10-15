@@ -18,6 +18,7 @@ from .eval_score import Thresholds
 MODELS = [  # the representative models (silence/chat_gui.py CURATED)
     ("results/epad10h", "R21_10h_lr5e-05_epad10", "checkpoint_000153", "10 h, lr 5e-5, EPAD ×10: best checkpoint (ep 2.2)"),
     ("results/epad10h", "R21_10h_lr5e-05_epad10", "checkpoint_000345", "10 h, lr 5e-5, EPAD ×10: final checkpoint (ep 5.0)"),
+    ("results/run50h", "R22_50h_lr5e-05_epad10", "checkpoint_000345", "50 h (v2 data), lr 5e-5, EPAD ×10: final checkpoint (1 epoch)"),
     ("results/phase2", "R8_10h_lr2e-05", "checkpoint_000289", "Best 10 h without EPAD (lr 2e-5, ep 4.2)"),
     ("results/phase1", "R4_1h_lr0.0002", "checkpoint_000112", "Best 1 h (lr 2e-4, ep 15.9)"),
     ("results/epad", "R17_1h_lr5e-05_epad10", "checkpoint_000042", "EPAD ×10 (1 h, lr 5e-5, ep 5.9)"),

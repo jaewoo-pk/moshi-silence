@@ -161,7 +161,7 @@ def decode_and_mix(mimi, codes, user_wav, sr, out_m4a):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--results", nargs="+", default=["results/phase1", "results/phase2", "results/epad", "results/epad10h"],
+    ap.add_argument("--results", nargs="+", default=["results/phase1", "results/phase2", "results/epad", "results/epad10h", "results/run50h"],
                     help="results dirs; the first one's models choose the episodes (keeps them stable)")
     ap.add_argument("--out", default="results/demo")
     ap.add_argument("--dev", required=True, help="data/dev (episodes/<id>.wav + .json)")
@@ -193,7 +193,8 @@ def main():
         cur = []
         for key, title, note in CURATED:
             run, ck = ("R0", "base") if key == "base" else key.split("/")
-            R = next(R for R in dirs if (R / "eval_raw" / run / a.set / ck / "scores.jsonl").exists())
+            # a curated run may have eval_raw scores but no eval/summary.csv yet (e.g. R22): look in every results dir
+            R = next(R for R in map(Path, a.results) if (R / "eval_raw" / run / a.set / ck / "scores.jsonl").exists())
             cur.append((R, run, ck, title))
             notes[(run, ck)] = note
             p_ = R / "eval_raw" / run / a.set / ck / "scores.jsonl"
@@ -321,7 +322,7 @@ img.plot { width:100%; border:1px solid var(--border); border-radius:8px; backgr
 </style></head>
 <body><div class="viz-root">
 <h1>Teaching Moshi when to stay silent: listening demo</h1>
-<p class="sub">Fine-tuned on <b>1 h</b> (6 learning rates, 20 epochs) and <b>10 h</b> (4 learning rates, 5 epochs) of synthetic conversations, plus runs with an up-weighted "start talking" token (<b>EPAD ×k</b>) at 1 h and 10 h. Representative checkpoints and the unmodified base model, all on the same unseen dev conversations.</p>
+<p class="sub">Fine-tuned on <b>1 h</b> (6 learning rates, 20 epochs) and <b>10 h</b> (4 learning rates, 5 epochs) of synthetic conversations, plus runs with an up-weighted "start talking" token (<b>EPAD ×k</b>) at 1 h and 10 h, and one 50 h run (v2 data, EPAD ×10, 1 epoch). Representative checkpoints and the unmodified base model, all on the same unseen dev conversations.</p>
 <div class="chips" id="datafilter" role="group" aria-label="Training data"></div>
 
 <div class="card">

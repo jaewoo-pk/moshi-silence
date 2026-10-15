@@ -68,10 +68,14 @@ data scaling past 10 h. It is not just more of the same data: a B1-heavier mix (
 `R20_10h_lr5e-05_epad3/checkpoint_000153` and `R21_10h_lr5e-05_epad10/checkpoint_000153` at 0.91 (to confirm on dev_200).
 Costs: timed holds lose silence (mutter reactions up to 53%). Details: `results/epad10h/summary.md`.
 
+**Live chat (user, 2026-10-15):** R22 (50 h) felt much better than R21 (10 h) in real conversation, and R21 a bit
+quiet, the reverse of the TTS-voiced test suites. Likely real-voice robustness from R22's 63 voices / 3 engines, which no suite
+measures. See `docs/training_record.md` §9.
+
 ## Where things are
 
 - Listening demo (20 models × 9 conversations, audio + timelines): `results/demo/index.html`
-- Representative models only (9 × 9 conversations, with good/bad notes, incl. the 10 h EPAD ×10 best and final checkpoints): `results/demo_curated/index.html`
-- Transcripts (the 9 representative models): `results/transcripts.md` (5 conversations) and the interactive viewer `results/transcripts.html` (9 conversations, audio from demo_curated); `python -m silence.transcript_gen --html results/transcripts.html`
+- Representative models only (10 × 9 conversations, with good/bad notes, incl. the 10 h EPAD ×10 best and final checkpoints and the 50 h run R22): `results/demo_curated/index.html`
+- Transcripts (the 10 representative models): `results/transcripts.md` (5 conversations) and the interactive viewer `results/transcripts.html` (9 conversations, audio from demo_curated); `python -m silence.transcript_gen --html results/transcripts.html`
 - Plots: `results/phase1/eval/curves_dev_80.png`, `results/phase2/eval/curves_dev_80.png`, `results/epad/analysis/epad_sweep.png`, loss curves under `results/*/plots/`
 - Full tables + method: `docs/training_record.md`; checkpoints: volume `np7c8l94dh` (manifests in `results/*/setup/`)

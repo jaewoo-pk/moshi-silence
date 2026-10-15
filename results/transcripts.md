@@ -50,6 +50,28 @@ Hold: Moshi should be silent from 13.1 s (until the user's cue) and speak again 
   43.1  USER    Perhaps a little bird, since she loves them.
 ```
 
+### 50 h (v2 data), lr 5e-5, EPAD ×10: final checkpoint (1 epoch)
+
+*Scored: hold: stayed silent, resumed on time (+0.7 s)*
+
+```
+   0.8  USER    Good evening. I would like to make a small clay sculpture for my sister.
+   4.8  MOSHI   How thoughtful! What   [script]
+   6.6  MOSHI   shape are you thinking of making for her?   [script]
+   8.7  USER    Wait, my friend wants to talk. Keep quiet until I say I'm back, okay?
+  13.1            — hold starts: Moshi should stay silent —
+  13.6  MOSHI   Of course.
+  13.9  FRIEND  Are you free to help me move a table?
+  16.2  USER    Certainly. Okay, I'm done for today anyway.
+  27.3  FRIEND  Great. It's only going from the porch to the garage.
+  30.6  USER    Is it heavy, or can the two of us manage?
+  33.5  FRIEND  Two of us will manage fine, it's quite light.
+  36.4  USER    Okay, we can keep going.
+  37.7            — Moshi should speak again (37.7 s) —
+  38.3  MOSHI   Welcome back! About your sister's sculpture, what shape are you thinking of?
+  43.1  USER    Perhaps a little bird, since she loves them.
+```
+
 ### Best 10 h without EPAD (lr 2e-5, ep 4.2)
 
 *Scored: hold: stayed silent, resumed on time (+1.3 s)*
@@ -262,6 +284,24 @@ Hold: Moshi should be silent from 12.3 s (timer, N = 10 s) and speak again at 22
   27.4  MOSHI   Sounds peaceful. Hope it a really good book.   [script]
 ```
 
+### 50 h (v2 data), lr 5e-5, EPAD ×10: final checkpoint (1 epoch)
+
+*Scored: hold: talked (8 words), resumed late (+2.0 s)*
+
+```
+   0.6  USER    I'm torn about something small. Would you help me make up my mind?
+   5.4  MOSHI   Glad to. Would you rather drive to the lake for a day, or stay home with a good book?   [script]
+   9.7  USER    Let me think for ten seconds, then ask me again.
+  12.3            — hold starts: Moshi should stay silent —
+  12.8  MOSHI   Sure.
+  14.4  USER    Well now, that's a toss-up.
+  19.0  MOSHI   Alright, so lake day or a good book at home?   ✗ HOLD
+  22.2            — Moshi should speak again (22.3 s) —
+  24.3  MOSHI   I like both, but I'd pick the book at home.
+  25.0  USER    Oh, I'll stay home and read.
+  27.4  MOSHI   Sounds peaceful. Hope it a really good book.   [script]
+```
+
 ### Best 10 h without EPAD (lr 2e-5, ep 4.2)
 
 *Scored: hold: talked (6 words), didn't resume*
@@ -422,6 +462,28 @@ Hold: Moshi should be silent from 6.5 s (until the user's cue) and speak again a
   34.4  USER    Okay, that covers them. What's your take?
   36.3            — Moshi should speak again (36.3 s) —
   36.7  MOSHI   I' go with the sturdy road bike. The cruiser is too slow for the city, and the folding bike is too small for long rides.
+  44.3  USER    Uh, yeah, the potholes are terrible here.
+```
+
+### 50 h (v2 data), lr 5e-5, EPAD ×10: final checkpoint (1 epoch)
+
+*Scored: hold: stayed silent, resumed on time (+0.6 s)*
+
+```
+   0.9  USER    Um, I want to buy a bike for getting around the city.
+   3.6  USER    Don't comment yet. Let me list all three options first.
+   6.5            — hold starts: Moshi should stay silent —
+   7.0  MOSHI   Sure.
+   8.8  USER    The first one is a sturdy road bike.
+  11.4  USER    It's fast, but, uh, it feels a bit fragile.
+  14.7  USER    Okay, so, uh, that's the road bike.
+  19.7  USER    The second option is a comfy cruiser.
+  21.9  USER    It's relaxed and easy, but, I mean, kind of slow.
+  28.9  USER    And the third one, a folding bike.
+  31.4  USER    It fits on the train, but the wheels are tiny.
+  34.4  USER    Okay, that covers them. What's your take?
+  36.3            — Moshi should speak again (36.3 s) —
+  36.9  MOSHI   The cruiser is easy going and comfortable, the folding bike fits everywhere, but the road bike is fast and shiny. I'd go with the cruiser.
   44.3  USER    Uh, yeah, the potholes are terrible here.
 ```
 
@@ -623,6 +685,24 @@ Hold: Moshi should be silent from 10.6 s (until the user's cue) and speak again 
   23.4  MOSHI   Right you are, a hole! You've got a quick mind, friend.   [script]
 ```
 
+### 50 h (v2 data), lr 5e-5, EPAD ×10: final checkpoint (1 epoch)
+
+*Scored: hold: talked (11 words), resumed on time (+0.5 s)*
+
+```
+   0.8  USER    Got a riddle for an old fellow? I like a good puzzler.
+   4.6  MOSHI   I do! What gets bigger the more you take away from it?   [script]
+   8.0  USER    Give me ten seconds, then hit me with the question again.
+  10.6            — hold starts: Moshi should stay silent —
+  11.2  MOSHI   No problem.
+  13.9  MOSHI   Alright, what gets bigger the more you take away?   ✗ HOLD
+  15.1  USER    Oh, wait, I'm ready. Ask me again.
+  17.0            — Moshi should speak again (17.0 s) —
+  17.4  MOSHI   Alright, what gets bigger the more you take away from it?
+  20.4  USER    A hole! It's a hole.
+  23.4  MOSHI   Right you are, a hole! You've got a quick mind, friend.   [script]
+```
+
 ### Best 10 h without EPAD (lr 2e-5, ep 4.2)
 
 *Scored: hold: stayed silent, resumed on time (+1.0 s)*
@@ -773,6 +853,19 @@ No hold: Moshi should answer normally.
   15.8  MOSHI   Yes, headphones or a good pair of earbuds are perfect. Keep the volume low so you can hear the rain.
   20.7  USER    Good idea, I'll unplug my laptop and my game console before it starts.
   26.0  MOSHI   Good thinking. I hope the storm passes quickly and you get some sleep.
+```
+
+### 50 h (v2 data), lr 5e-5, EPAD ×10: final checkpoint (1 epoch)
+
+*Scored: question 1: answered (+0.6 s); question 2: answered (+0.5 s); question 3: answered (+0.7 s)*
+
+```
+   0.6  USER    There's a big storm coming tonight, and I'm kind of nervous about the thunder. Any tips?
+   6.4  MOSHI   Stay indoors if you can. Close the windows and keep the lights off and the television low. Most of the thunder goes away after a few minutes.
+  11.5  USER    Okay, that's smart, and I could probably just wear headphones too, right?
+  15.8  MOSHI   Yes, and a blanket to snuggle into if the rain gets loud. You'll be fine.
+  20.7  USER    Good idea, I'll unplug my laptop and my game console before it starts.
+  26.0  MOSHI   Good thinking! You'll feel better about it once the storm passes.
 ```
 
 ### Best 10 h without EPAD (lr 2e-5, ep 4.2)
